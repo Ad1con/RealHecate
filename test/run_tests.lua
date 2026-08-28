@@ -1,4 +1,4 @@
--- TrueHecate test suite. Run from this directory:
+-- RealHecate test suite. Run from this directory:
 --     lua run_tests.lua
 --     luajit run_tests.lua
 --
@@ -49,7 +49,7 @@ end
 local function activeLight(plugin)
   local name = at(plugin, "CONFIG") and plugin.CONFIG.glowName() or nil
   if name == nil then return nil end
-  return (name:gsub("^TrueHecateGlow_", "TrueHecateLight_"))
+  return (name:gsub("^RealHecateGlow_", "RealHecateLight_"))
 end
 
 local function findAnim(name)
@@ -114,8 +114,6 @@ do
   local v = at(at(plugin, "settings"), "values")
 
   check("1.1 ships enabled", at(v, "Enabled") == true, tostring(at(v, "Enabled")))
-  check("1.2 ships marking the base fight", at(v, "MarkInBaseFight") == true)
-  check("1.3 ships marking Extreme Measures", at(v, "MarkInExtremeMeasures") == true)
   check("1.4 ships removing the marker with the clones", at(v, "KeepAfterClonesGone") == false)
   -- OFF as of v4.0.0. The Apollo ground sprite replaced it, and a playtest
   -- compared them directly and preferred without the dark pool underneath.
@@ -124,8 +122,13 @@ do
   check("1.5c tinted red", at(v, "GroundFxColor") == "Red", tostring(at(v, "GroundFxColor")))
   -- Ember, not Amber: Amber's middle channel clips at the shipped stacking and
   -- washes to pale yellow-white. That cost a playtest.
-  check("1.10 ships stripping the clones' vanilla glow", at(v, "RemoveCloneGlow") == true)
-  check("1.10b ships replacing her own vanilla glow", at(v, "ReplaceVanillaGlow") == true)
+  -- ON now: the clones keep vanilla's glow. Stripping them was contrast by
+  -- absence, needed only while nothing else rendered on that floor. The red
+  -- Apollo glow marks her positively, so the fight stays closer to vanilla.
+  check("1.10 ships the clones keeping their vanilla glow",
+        at(v, "CloneGroundGlow") == true, tostring(at(v, "CloneGroundGlow")))
+  check("1.10b ships hers stripped, so only the mod's light is under her",
+        at(v, "HecateVanillaGlow") == false, tostring(at(v, "HecateVanillaGlow")))
   check("1.10c ships stripping the clones' Dream outline",
         at(v, "StripCloneDreamOutline") == true)
   -- The outline is the PRIMARY marker as of v3.4.0. It was off for ten rounds
@@ -248,7 +251,10 @@ end
 -- 6. Repeat splits -- she splits at every phase change
 -- =============================================================================
 do
-  local G = boot()
+  -- CloneGroundGlow pinned OFF: this section measures that the strip runs on
+  -- EVERY split, and the strip only runs when it is switched on. It ships on --
+  -- clones keep their glow -- so the default would make this test vacuous.
+  local G = boot({ CloneGroundGlow = false })
   local hecate = G.spawnHecate()
 
   G.UnitSplit(hecate, EM)
@@ -541,7 +547,7 @@ do
   -- Light, Recolour, Invert, SteadyColor, Color, LightStacking and Scale were
   -- all still drawn, writing through saveSetting to keys with no default. The
   -- suite passed anyway, because the ImGui mock happily records any label. This
-  -- closes that: widget labels carry ##TrueHecate_<key>, so the key is
+  -- closes that: widget labels carry ##RealHecate_<key>, so the key is
   -- recoverable and checkable against the real settings table.
   local G, plugin = boot(nil, { gui = { openCombo = true } })
   M.guiCallbacks.window()
@@ -549,7 +555,7 @@ do
   local values = at(at(plugin, "settings"), "values")
   local orphans, seen = {}, {}
   for _, l in ipairs(M.labels) do
-    local key = tostring(l):match("##TrueHecate_([A-Za-z]+)")
+    local key = tostring(l):match("##RealHecate_([A-Za-z]+)")
     if key and not seen[key] then
       seen[key] = true
       if values[key] == nil then orphans[#orphans + 1] = key end
@@ -589,7 +595,7 @@ end
 
 do
   -- Toggling in the panel must write through to the config, not just to memory.
-  local G, plugin = boot(nil, { gui = { toggle = "Enabled##TrueHecate_Enabled" } })
+  local G, plugin = boot(nil, { gui = { toggle = "Enabled##RealHecate_Enabled" } })
   check("10c.13 starts enabled", at(at(plugin, "settings"), "values").Enabled == true)
   M.guiCallbacks.window()
   check("10c.14 the checkbox flips the setting",
@@ -601,7 +607,7 @@ end
 do
   -- A combo selection has to reach the live variant picker, which is the whole
   -- point of tuning from the overlay.
-  local G, plugin = boot(nil, { gui = { openCombo = true, click = "Ember##TrueHecate_GroundFxColor_Ember" } })
+  local G, plugin = boot(nil, { gui = { openCombo = true, click = "Ember##RealHecate_GroundFxColor_Ember" } })
   M.guiCallbacks.window()
   check("10c.16 picking a colour writes it through",
         M.store.GroundFxColor == "Ember", tostring(M.store.GroundFxColor))
@@ -613,7 +619,7 @@ end
 
 do
   local G, plugin = boot({ Light = true },
-                         { gui = { slide = "Ground size##TrueHecate_GroundFxScale", slideTo = 7 } })
+                         { gui = { slide = "Ground size##RealHecate_GroundFxScale", slideTo = 7 } })
   M.guiCallbacks.window()
   check("10c.18 a slider writes through", M.store.GroundFxScale == 7,
         tostring(M.store.GroundFxScale))
@@ -962,6 +968,6 @@ end
 
 -- =============================================================================
 
-print(("TrueHecate: %d passed, %d failed"):format(passed, failed))
+print(("RealHecate: %d passed, %d failed"):format(passed, failed))
 for _, f in ipairs(failures) do print("  FAIL  " .. f) end
 if failed > 0 then os.exit(1) end

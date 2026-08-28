@@ -213,7 +213,7 @@ function M.install(game, configOpts, configInitial, sjsonOpts, modutilOpts, guiS
     }
   end
 
-  _PLUGIN = { guid = "Adicon-TrueHecate" }
+  _PLUGIN = { guid = "Adicon-RealHecate" }
 end
 
 return M

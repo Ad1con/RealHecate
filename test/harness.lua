@@ -1,4 +1,4 @@
--- Fake game globals for TrueHecate. Only what the plugin actually touches, plus
+-- Fake game globals for RealHecate. Only what the plugin actually touches, plus
 -- a faithful-enough UnitSplit and a cooperative thread scheduler so the suite
 -- can drive the clone watcher deterministically instead of sleeping.
 

@@ -1,5 +1,5 @@
 -- =============================================================================
--- TrueHecate (v4.2.0) -- marks the real Hecate during her Triple Divide.
+-- RealHecate (v5.0.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
@@ -179,14 +179,14 @@ _PLUGIN = _PLUGIN
 local modutil = mods["SGG_Modding-ModUtil"]
 local reload = mods["SGG_Modding-ReLoad"]
 
-local LOG_PREFIX = "[TrueHecate] "
+local LOG_PREFIX = "[RealHecate] "
 
 -- Prefix for every animation this plugin registers. StopAnimation names an
 -- animation, so the attached marker is removed by whichever name attached it --
 -- see detachMarker, which stops every variant rather than guessing which one is
 -- live.
-local MARKED_FIELD = "TrueHecate_Marked"
-local GENERATION_FIELD = "TrueHecate_Generation"
+local MARKED_FIELD = "RealHecate_Marked"
+local GENERATION_FIELD = "RealHecate_Generation"
 
 -- The clone types the two scope settings gate on, straight out of the split
 -- weapons' SpawnedUnit fields.
@@ -261,8 +261,6 @@ CONFIG.colorOrder = { "Amber", "Ember", "Violet", "Gold", "Teal",
 local settings = {
     values = {
         Enabled = true,
-        MarkInBaseFight = true,
-        MarkInExtremeMeasures = true,
         KeepAfterClonesGone = false,
 
         -- OFF as of v4.0.0. This is the vanilla HecateGroundLight pool -- the
@@ -290,7 +288,18 @@ local settings = {
         -- Take vanilla's own ground glow off the two clones, so hers is the only
         -- lit floor. The single biggest readability win available, and it adds
         -- nothing artificial -- see the header.
-        RemoveCloneGlow = true,
+        -- ON: the clones keep vanilla's own ground glow, as they do unmodded.
+        --
+        -- This shipped as RemoveCloneGlow = true for most of development, when
+        -- stripping the clones was the ONLY thing that made the real Hecate
+        -- identifiable -- contrast by absence, because nothing else rendered on
+        -- that floor. The red Apollo glow now marks her positively, so taking
+        -- effects away from the clones is no longer paying for itself, and
+        -- leaving the fight closer to vanilla is worth more.
+        --
+        -- Named for what it IS rather than what the mod does to it: "on" means
+        -- the clones are lit, which is what a reader expects.
+        CloneGroundGlow = true,
         -- Take vanilla's glow off the REAL Hecate too, so this mod's light is
         -- the only one under her.
         --
@@ -304,7 +313,10 @@ local settings = {
         --
         -- Note this plugin previously had a test asserting her own glow was
         -- "left alone", treating that as correct. It was the bug.
-        ReplaceVanillaGlow = true,
+        -- OFF: vanilla's glow comes off the real Hecate, so the only light under
+        -- her is this mod's red one. With it on she carries both, and vanilla's
+        -- teal-to-magenta cycle fights the marker's colour.
+        HecateVanillaGlow = false,
         -- Dream Dive only. See stripCloneOutlineData: without this, the base
         -- fight's clones carry the SAME red outline the real Hecate does, so the
         -- outline identifies nothing there.
@@ -390,16 +402,14 @@ local settings = {
 
 local CONFIG_DESCRIPTIONS = {
     Enabled = "Master switch. Off leaves the fight completely vanilla.",
-    MarkInBaseFight = "Mark the real Hecate when she splits in the ordinary fight (HecateCopy clones).",
-    MarkInExtremeMeasures = "Mark the real Hecate when she splits in Extreme Measures / Rivals (HecateCopyEM clones).",
     KeepAfterClonesGone = "Leave the marker on for the rest of the fight instead of removing it when the clones die.",
 
     GroundFx = "Ground art under the real Hecate: None or ApolloGlow. Colour and size are set separately by GroundFxColor and GroundFxScale. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     GroundFxColor = "Tint for the ground art. One of: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Red gives the strongest contrast against this arena's cyan floor; None leaves Apollo's own gold-orange. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     GroundFxScale = "Size of the ground art. RESTART REQUIRED.",
-    ReplaceVanillaGlow = "Take vanilla's own ground glow off the real Hecate so this mod's light is the only one under her. Off leaves both, and vanilla's teal-to-magenta pulse will fight this mod's colour. RESTART REQUIRED.",
     StripCloneDreamOutline = "Dream Dive only: take vanilla's outline off the clones, so the real Hecate is the only outlined one. Without it the base fight's clones share her exact red outline. No effect outside Dream runs. RESTART REQUIRED.",
-    RemoveCloneGlow = "Take vanilla's own ground glow off the two clones, so the real Hecate is the only one with a lit floor. The biggest readability win here. RESTART REQUIRED.",
+    CloneGroundGlow = "Whether the CLONES keep vanilla's own ground glow. On leaves the fight closer to vanilla; off darkens them so the real Hecate is the only lit one. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
+    HecateVanillaGlow = "Whether the real Hecate keeps vanilla's own ground glow, on top of this mod's. Off is recommended: vanilla's cycles teal to magenta and fights the marker's colour. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
 
     Outline = "Fallback if the ground light still is not enough: draw a coloured outline around the real Hecate. Unmistakable, but it looks like a mod. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     OutlineColor = "Colour of the outline. One of: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Matching it to GroundFxColor keeps the two markers reading as one scheme. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
@@ -437,7 +447,7 @@ local function loadSettings()
             return
         end
 
-        local guid = (_PLUGIN and _PLUGIN.guid) or "Adicon-TrueHecate"
+        local guid = (_PLUGIN and _PLUGIN.guid) or "Adicon-RealHecate"
         local path = rom.path.combine(configDir, guid .. ".cfg")
         local file = rom.config.config_file:new(path, true)
 
@@ -526,14 +536,20 @@ end
 
 -- Clamped rather than trusted: a zero or negative scale registers a light with
 -- no size at all, which looks exactly like the plugin failing to load.
--- True if the split that just happened is one the player asked to be marked.
+-- True if this split is one the mod should mark.
+--
+-- The per-fight scope settings are gone. MarkInBaseFight and
+-- MarkInExtremeMeasures let the marker be enabled in one fight variant and not
+-- the other, which is a real scenario -- practising Extreme Measures unaided in
+-- the easier base fight -- but nobody asked for it, and Enabled already covers
+-- the case anyone actually has.
+--
+-- The clone-type check stays. It is not scope, it is a guard: UnitSplit is a
+-- general function that other enemies use, and this must ignore a split that is
+-- not one of Hecate's two clone types rather than mark whatever was passed.
 function CONFIG.marksCloneType(spawnedUnit)
     if not settings.values.Enabled then return false end
-    if spawnedUnit == CLONE_EM then return settings.values.MarkInExtremeMeasures == true end
-    if spawnedUnit == CLONE_BASE then return settings.values.MarkInBaseFight == true end
-    -- Any other SpawnedUnit means UnitSplit was called on something that is not
-    -- one of Hecate's two clone types. Stand down rather than guess.
-    return false
+    return spawnedUnit == CLONE_EM or spawnedUnit == CLONE_BASE
 end
 
 -- =============================================================================
@@ -677,16 +693,19 @@ local GROUND_FX_ORDER = { "None", "ApolloGlow" }
 -- types is read only by the loop above, and the only entry removed is the ground
 -- glow -- the torch flames on HecateCopy (EnemyData_Hecate.lua:5565-5567) are
 -- left alone, so the clones still look like Hecate.
--- Which unit types lose vanilla's ground glow in data. The clones so that only
--- the real Hecate is lit at all; the real Hecate so that the only light under
--- her is this mod's, rather than two overlapping pools fighting over the colour.
+-- Which unit types lose vanilla's ground glow in data.
+--
+-- Both settings are named for the STATE they describe rather than the action the
+-- mod takes, so both are inverted here: a unit is stripped when its glow is
+-- switched OFF. That reads better in the config than RemoveCloneGlow did, where
+-- "true" meant the clones were dark.
 local function glowStripTargets()
     local targets = {}
-    if settings.values.RemoveCloneGlow then
+    if not settings.values.CloneGroundGlow then
         targets[#targets + 1] = CLONE_BASE
         targets[#targets + 1] = CLONE_EM
     end
-    if settings.values.ReplaceVanillaGlow then
+    if not settings.values.HecateVanillaGlow then
         targets[#targets + 1] = "Hecate"
     end
     return targets
@@ -835,7 +854,7 @@ local function detachMarker(game, hecate)
     if not hecate[MARKED_FIELD] then return end
 
     -- One name, because there is only one animation now. This also takes her own
-    -- base glow if ReplaceVanillaGlow is off, which is why that setting defaults
+    -- base glow if HecateVanillaGlow is on, which is why that setting defaults
     -- on: with it on she has no base glow and the marker is unambiguous.
     game.StopAnimation({
         Name = VANILLA_GLOW,
@@ -934,7 +953,7 @@ end
 -- =============================================================================
 -- Overlay panel
 -- =============================================================================
--- Added in v2.2.0 after a playtest went looking for TrueHecate in the modding
+-- Added in v2.2.0 after a playtest went looking for RealHecate in the modding
 -- overlay and did not find it. Settings were file-only, which is a gap in this
 -- plugin rather than a limit of the platform: Chalk generates the .cfg and draws
 -- no GUI at all, and the overlay panel is separate rom.gui/ImGui code.
@@ -967,9 +986,9 @@ local RESTART_ONLY = " (restart)"
 
 local function comboSetting(imgui, key, options, label)
     local current = tostring(settings.values[key])
-    if imgui.BeginCombo(label .. "##TrueHecate_" .. key, current) then
+    if imgui.BeginCombo(label .. "##RealHecate_" .. key, current) then
         for _, name in ipairs(options) do
-            if imgui.Selectable(name .. "##TrueHecate_" .. key .. "_" .. name) then
+            if imgui.Selectable(name .. "##RealHecate_" .. key .. "_" .. name) then
                 saveSetting(key, name)
             end
         end
@@ -978,13 +997,13 @@ local function comboSetting(imgui, key, options, label)
 end
 
 local function checkSetting(imgui, key, label)
-    local value, changed = imgui.Checkbox(label .. "##TrueHecate_" .. key,
+    local value, changed = imgui.Checkbox(label .. "##RealHecate_" .. key,
                                           settings.values[key] == true)
     if changed then saveSetting(key, value) end
 end
 
 local function sliderSetting(imgui, key, label, low, high, fmt)
-    local value, changed = imgui.SliderFloat(label .. "##TrueHecate_" .. key,
+    local value, changed = imgui.SliderFloat(label .. "##RealHecate_" .. key,
                                             tonumber(settings.values[key]) or low,
                                             low, high, fmt or "%.2f")
     if changed then saveSetting(key, value) end
@@ -1005,7 +1024,7 @@ local function renderWindow()
     -- fires: a raise anywhere in the body then skips End, ImGui is left with an
     -- unclosed window, and the overlay is corrupted for EVERY mod, not just this
     -- one. Test 10c.7 caught exactly that in the first draft of this function.
-    local shouldDraw = imgui.Begin("TrueHecate")
+    local shouldDraw = imgui.Begin("RealHecate")
 
     local ok, err = pcall(function()
         if shouldDraw then
@@ -1015,8 +1034,6 @@ local function renderWindow()
             imgui.Separator()
 
             checkSetting(imgui, "Enabled", "Enabled")
-            checkSetting(imgui, "MarkInBaseFight", "Mark in the ordinary fight")
-            checkSetting(imgui, "MarkInExtremeMeasures", "Mark in Extreme Measures")
             checkSetting(imgui, "KeepAfterClonesGone", "Keep marker after clones die")
             imgui.Spacing()
             imgui.Separator()
@@ -1037,8 +1054,8 @@ local function renderWindow()
             imgui.Spacing()
             imgui.Separator()
             imgui.Text("Clones")
-            checkSetting(imgui, "RemoveCloneGlow", "Strip clone ground glow" .. RESTART_ONLY)
-            checkSetting(imgui, "ReplaceVanillaGlow", "Replace her vanilla glow" .. RESTART_ONLY)
+            checkSetting(imgui, "CloneGroundGlow", "Clones keep their glow" .. RESTART_ONLY)
+            checkSetting(imgui, "HecateVanillaGlow", "She keeps her vanilla glow" .. RESTART_ONLY)
             checkSetting(imgui, "StripCloneDreamOutline", "Strip clone Dream outline" .. RESTART_ONLY)
 
             imgui.Spacing()
@@ -1064,8 +1081,8 @@ local function renderMenuBar()
         local imgui = rom.ImGui
         if imgui == nil then return end
         -- EndMenu only when BeginMenu returned true.
-        if imgui.BeginMenu("TrueHecate") then
-            if imgui.MenuItem("Marker enabled##TrueHecate_menu_enabled") then
+        if imgui.BeginMenu("RealHecate") then
+            if imgui.MenuItem("Marker enabled##RealHecate_menu_enabled") then
                 saveSetting("Enabled", not settings.values.Enabled)
             end
             imgui.EndMenu()
@@ -1145,7 +1162,7 @@ local function on_ready(game)
     end
 
     if settings.values.Enabled
-        and (settings.values.RemoveCloneGlow or settings.values.ReplaceVanillaGlow) then
+        and (not settings.values.CloneGroundGlow or not settings.values.HecateVanillaGlow) then
         local ok, result = pcall(stripCloneGlowData, game)
         if ok then
             stripped = result
@@ -1157,12 +1174,10 @@ local function on_ready(game)
     local guiOk = installGui()
 
     if installHooks(game) then
-        logAlways(("installed; overlay panel %s; marker is %s (base fight %s, Extreme Measures %s), "
+        logAlways(("installed; overlay panel %s; marker is %s; "
                    .. "clone glow entries removed: %d, clone Dream outlines removed: %d%s")
             :format(guiOk and "registered" or "unavailable",
                     settings.values.Enabled and "on" or "off",
-                    settings.values.MarkInBaseFight and "on" or "off",
-                    settings.values.MarkInExtremeMeasures and "on" or "off",
                     stripped,
                     outlinesStripped,
                     settings.persistent and "" or " (settings not persisted)"))
@@ -1181,7 +1196,7 @@ local function on_reload()
     logAlways(("settings reloaded; ground %s/%s at scale %.2f, clone glow %s, outline %s")
         :format(tostring(settings.values.GroundFx), tostring(settings.values.GroundFxColor),
                 clamp(settings.values.GroundFxScale, 0.1, 12.0, 3.0),
-                settings.values.RemoveCloneGlow and "stripped" or "left",
+                settings.values.CloneGroundGlow and "left" or "stripped",
                 settings.values.Outline and "on" or "off"))
 end
 

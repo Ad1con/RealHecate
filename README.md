@@ -1,4 +1,4 @@
-# TrueHecate
+# RealHecate
 
 When Hecate splits into three, this puts a coloured light on the ground under the
 real one. The other two are clones.
