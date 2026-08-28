@@ -1,5 +1,5 @@
 -- =============================================================================
--- TrueHecate (v4.0.0) -- marks the real Hecate during her Triple Divide.
+-- TrueHecate (v4.1.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
@@ -178,7 +178,6 @@ _PLUGIN = _PLUGIN
 
 local modutil = mods["SGG_Modding-ModUtil"]
 local reload = mods["SGG_Modding-ReLoad"]
-local sjson = mods["SGG_Modding-SJSON"]
 
 local LOG_PREFIX = "[TrueHecate] "
 
@@ -278,14 +277,12 @@ local settings = {
         -- Invert, Recolour, SteadyColor, Color, Scale and LightStacking all still
         -- apply to THIS light, so turning it back on restores exactly the look
         -- that was tested rather than some untested combination.
-        Light = false,
         -- Additive: N stacked copies read as one light at N times the brightness,
         -- with the same character. This is the brightness dial, and unlike Color
         -- and Scale it is live. Confirmed working in a playtest once the render
         -- bug was fixed, so raising it is a known-good lever rather than a guess.
         -- Down from 4. With a nearly-flat falloff, each extra copy widens the
         -- apparent pool as well as brightening it.
-        LightStacking = 3,
         -- Multiplies the colour channels before stacking. Together these two set
         -- the peak: LightStacking x Brightness x channel. Above about 2.0 on the
         -- top channel the light starts washing to white -- see CONFIG.colors.
@@ -315,11 +312,9 @@ local settings = {
         -- Ember, not Amber: at the shipped 3 copies Amber reaches (3.00, 1.35,
         -- 0.24) and its middle channel clips, washing to pale yellow-white. Ember
         -- peaks at (3.00, 0.90, 0.15) and holds its colour.
-        Color = "Ember",
         -- Recolour vanilla's OWN HecateGroundLight entry rather than register
         -- a new animation. See recolourVanillaLight for why that distinction is
         -- the whole story.
-        Recolour = true,
         -- Darken instead of brighten.
         --
         -- Additive light can only ADD. Her arena floor is already saturated with
@@ -336,7 +331,6 @@ local settings = {
         -- one of the three. Note this pairs with Light -- Light controls whether
         -- copies are attached at all, Invert controls whether those copies
         -- darken or brighten, and LightStacking is then how DARK the pool goes.
-        Invert = true,
         -- None, ApolloGlow (vanilla's orange ground glow) or CastCircle (a ring,
         -- which reads by shape rather than colour). See GROUND_FX.
         GroundFx = "ApolloGlow",
@@ -356,7 +350,6 @@ local settings = {
         GroundFxScale = 3.0,
         -- Hold one colour instead of cycling. Vanilla ping-pongs teal to magenta
         -- every second; a playtest called it "back and forth pretty rapidly".
-        SteadyColor = true,
         -- Both diagnostics that lived here are gone. What DiagnosticVanillaGlow
         -- switched on -- attaching vanilla's own animation -- is now simply how
         -- the mod works, and DiagnosticVanillaColors did its job: it proved the
@@ -366,7 +359,6 @@ local settings = {
         -- (measured by extracting Fx.pkg with deppth2) and vanilla's own Hecate
         -- light runs 1.33, so 1.0 is a pool about her own footprint. Every larger
         -- value read as area lighting rather than a marker on her.
-        Scale = 1.0,
 
         -- How far the size breath swings, as a fraction. 0.18 in v1.3.0 was
         -- reported as barely noticeable -- partly because a clipped white pool
@@ -402,19 +394,12 @@ local CONFIG_DESCRIPTIONS = {
     MarkInExtremeMeasures = "Mark the real Hecate when she splits in Extreme Measures / Rivals (HecateCopyEM clones).",
     KeepAfterClonesGone = "Leave the marker on for the rest of the fight instead of removing it when the clones die.",
 
-    Light = "Vanilla's own ground light under the real Hecate, darkened via Invert. Off by default -- the Apollo ground sprite (GroundFx) replaced it. Turning this on restores the older look.",
     GroundFx = "Ground art under the real Hecate. None, ApolloGlow (gold-orange), AresRed (near-pure red -- the strongest contrast against this arena's cyan floor), HestiaOrange, ZeusGold, HeraGreen, PoseidonTeal, DemeterBlue, AphroditePink, or CastCircle (a ring, which reads by shape rather than colour). RESTART REQUIRED.",
     GroundFxColor = "Tint for the ground art: None (Apollo's own gold-orange) or any colour preset. Red is the strongest contrast against this arena's cyan floor.",
     GroundFxScale = "Size of the ground art. RESTART REQUIRED.",
-    Invert = "Darken the floor under the real Hecate instead of lighting it. Use this if colour keeps washing out -- a dark pool cannot be drowned by the arena's own light. RESTART REQUIRED.",
-    Recolour = "Recolour vanilla's own light under the real Hecate. RESTART REQUIRED.",
-    SteadyColor = "Hold one colour instead of vanilla's teal-to-magenta cycle. RESTART REQUIRED.",
-    LightStacking = "How many copies of the light to stack, 1 to 8. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     ReplaceVanillaGlow = "Take vanilla's own ground glow off the real Hecate so this mod's light is the only one under her. Off leaves both, and vanilla's teal-to-magenta pulse will fight this mod's colour. RESTART REQUIRED.",
     StripCloneDreamOutline = "Dream Dive only: take vanilla's outline off the clones, so the real Hecate is the only outlined one. Without it the base fight's clones share her exact red outline. No effect outside Dream runs. RESTART REQUIRED.",
     RemoveCloneGlow = "Take vanilla's own ground glow off the two clones, so the real Hecate is the only one with a lit floor. The biggest readability win here. RESTART REQUIRED.",
-    Color = "Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Amber and Ember hold their colour best when driven hard; Gold, Teal and Cyan wash out to white. RESTART REQUIRED.",
-    Scale = "Size of the light. The art is 360x180 pixels at 1.0, and vanilla's own Hecate light runs 1.33. Note that raising LightStacking also makes the pool look WIDER, because the texture's falloff is nearly flat. Bigger is NOT brighter -- past about 2.5 it stops looking like a marker on her and starts looking like area lighting. RESTART REQUIRED.",
 
     Outline = "Fallback if the ground light still is not enough: draw a coloured outline around the real Hecate. Unmistakable, but it looks like a mod. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     OutlineColor = "Any of the same ten presets. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
@@ -506,10 +491,6 @@ local function resolveColor(chosen, label)
     return rgb
 end
 
-function CONFIG.resolvedColor()
-    return resolveColor(settings.values.Color, "light")
-end
-
 -- AddOutline takes 0-255 channels (PresentationBiomeF.lua:36 uses 230/23/0),
 -- where the light's sjson takes 0-1. The presets are stored in 0-1, so this is
 -- the single place the conversion happens.
@@ -545,13 +526,6 @@ end
 
 -- Clamped rather than trusted: a zero or negative scale registers a light with
 -- no size at all, which looks exactly like the plugin failing to load.
-function CONFIG.resolvedScale()
-    local scale = tonumber(settings.values.Scale) or 1.6
-    if scale < 0.25 then return 0.25 end
-    if scale > 6.0 then return 6.0 end
-    return scale
-end
-
 -- True if the split that just happened is one the player asked to be marked.
 function CONFIG.marksCloneType(spawnedUnit)
     if not settings.values.Enabled then return false end
@@ -787,15 +761,8 @@ local function stripCloneGlowData(game)
     return removed
 end
 
--- The marker animation is vanilla's own. There is no variant to choose any
--- more, which is the whole point of the rewrite.
-function CONFIG.glowName()
-    return VANILLA_GLOW
-end
-
 -- The ground sprite's tint as {R, G, B, A} in 0-255, or nil to leave the art its
--- own colour. This is the sprite path, and it is a different mechanism from the
--- light recolour below -- vanilla passes Color to CreateAnimation for sprites in
+-- own colour. Vanilla passes Color to CreateAnimation for sprites in
 -- seven places, and never for a light.
 function CONFIG.resolvedGroundColor()
     local name = settings.values.GroundFxColor
@@ -809,110 +776,8 @@ function CONFIG.resolvedGroundColor()
     return { r, g, b, 255 }
 end
 
--- Rewrite the colour on vanilla's OWN HecateGroundLight entry, in place.
---
--- Every previous colour attempt REGISTERED A NEW animation and attached that.
--- Those rendered but never took their colour, under every combination tried --
--- including vanilla's exact channel values -- while vanilla's own animation
--- attached by name rendered in colour correctly. Runtime SetColor on the id
--- CreateAnimation returns was tried too: it raised nothing and changed nothing.
---
--- So this stops adding entries and edits the one the engine already honours.
--- The entry exists, is already recognised, and already renders coloured; only
--- the numbers change.
---
--- Blast radius is one unit. HecateGroundLight is referenced solely by
--- HecateGroundGlow (Enemy_Erebus_VFX.sjson:2950), which after the clone strip
--- exists only on the real Hecate. MedeaGroundLight is a separate entry carrying
--- its own identical values and is untouched.
---
--- If this does not work either, nothing is lost: the light keeps vanilla's
--- teal-to-magenta cycle, which is already a working marker.
-local function recolourVanillaLight()
-    if not settings.values.Recolour then return false end
-    if sjson == nil or type(sjson.hook) ~= "function"
-        or rom.path == nil or rom.paths == nil or rom.paths.Content == nil then
-        logWarn("SJSON unavailable; keeping vanilla's own light colour")
-        return false
-    end
-
-    local ok, err = pcall(function()
-        local animFile = rom.path.combine(rom.paths.Content,
-                                          "Game/Animations/Enemy_Erebus_VFX.sjson")
-        local rgb = CONFIG.resolvedColor()
-        local steady = settings.values.SteadyColor == true
-
-        sjson.hook(animFile, function(data)
-            for _, anim in ipairs(data.Animations or {}) do
-                if anim.Name == "HecateGroundLight" then
-                    if settings.values.Invert then
-                        anim.FilePath = [[Lights\DiffuseSpotlightInverse]]
-                    end
-                    anim.StartRed, anim.StartGreen, anim.StartBlue = rgb[1], rgb[2], rgb[3]
-                    if steady then
-                        -- Equal endpoints hold one colour. PingPongColor is left
-                        -- exactly as vanilla set it -- with both ends equal there
-                        -- is nothing for it to move between.
-                        anim.EndRed, anim.EndGreen, anim.EndBlue = rgb[1], rgb[2], rgb[3]
-                    end
-                    -- The clipping check, restored. It was dropped in the
-                    -- v3.0.0 rewrite and immediately cost a playtest: Amber at
-                    -- three copies is (3.0, 1.35, 0.24), so red AND green pin at
-                    -- 1.0 and the pool reads as pale yellow-white rather than
-                    -- amber. Colour survives only while the MIDDLE channel stays
-                    -- under 1.0 after stacking.
-                    local copies = math.floor(clamp(settings.values.LightStacking, 1, 8, 3))
-                    local scaled = { rgb[1] * copies, rgb[2] * copies, rgb[3] * copies }
-                    table.sort(scaled, function(x, y) return x > y end)
-                    logAlways(("recoloured HecateGroundLight to %s%s; peak %.2f, second channel %.2f")
-                              :format(tostring(settings.values.Color),
-                                      steady and " (steady)" or " (cycling)",
-                                      scaled[1], scaled[2]))
-                    if scaled[2] >= 1.0 then
-                        logWarn(("%s washes out at %d copies: its second channel reaches %.2f and "
-                                 .. "anything at or over 1.0 clips. Lower LightStacking, or pick a "
-                                 .. "colour with a lower middle channel -- Ember (0.30) or Red (0.15).")
-                                :format(tostring(settings.values.Color), copies, scaled[2]))
-                    end
-                end
-            end
-        end)
-    end)
-
-    if not ok then
-        logWarn("recolour failed, keeping vanilla's colour: " .. tostring(err))
-        return false
-    end
-    return true
-end
 
 local function attachMarker(game, hecate)
-    if settings.values.Light then
-        -- Stacked copies of VANILLA's own ground glow. Additive, so N copies read
-        -- as one light at N times the brightness -- verified in a real fight,
-        -- where eight copies were plainly brighter than one.
-        --
-        -- Name, DestinationId and Scale only. That matches how the game itself
-        -- creates these (RoomLogic.lua:3384) plus Scale, which 113 of the game's
-        -- own CreateAnimation calls pass. v1.0.0 also passed Group = "FX_Terrain"
-        -- -- a value copied from the animation's GroupName field, which is a
-        -- different namespace -- and the light went into a group that does not
-        -- draw. Two playtests saw nothing while every log line claimed success.
-        local copies = clamp(settings.values.LightStacking, 1, 8, 3)
-        for _ = 1, math.floor(copies) do
-            -- Colour is NOT applied here. A runtime SetColor on the id
-            -- CreateAnimation returns was tried and did nothing -- it raised no
-            -- error and changed no pixel. Colour now comes from
-            -- recolourVanillaLight, which edits the light entry the engine
-            -- already honours instead of trying to tint an instance.
-            game.CreateAnimation({
-                Name = CONFIG.glowName(),
-                DestinationId = hecate.ObjectId,
-                Scale = CONFIG.resolvedScale(),
-            })
-        end
-    end
-
     local groundFx = GROUND_FX[settings.values.GroundFx]
     if groundFx ~= nil then
         -- A sprite, not a light. Vanilla passes Scale on 113 CreateAnimation
@@ -1049,10 +914,9 @@ local function markRealHecate(game, hecate, aiData)
 
     -- No clone-glow work here any more. It is done once in data at load, so by
     -- the time a clone spawns it simply has no ground glow to remove.
-    logAlways(("marked the real Hecate (id %s) against %d %s clone(s); light %s, stacking %d, outline %s")
+    logAlways(("marked the real Hecate (id %s) against %d %s clone(s); ground %s/%s, outline %s")
         :format(tostring(hecate.ObjectId), countKeys(hecate.SplitIds), tostring(spawnedUnit),
-                settings.values.Light and "on" or "off",
-                math.floor(clamp(settings.values.LightStacking, 1, 8, 4)),
+                tostring(settings.values.GroundFx), tostring(settings.values.GroundFxColor),
                 settings.values.Outline and "on" or "off"))
 
     if settings.values.KeepAfterClonesGone then return end
@@ -1267,11 +1131,6 @@ end
 
 loadSettings()
 
--- Before once_loaded.game: an sjson hook has to be registered while the game is
--- still reading its data files. Registering one from inside the game-loaded
--- callback is too late and fails silently.
-recolourVanillaLight()
-
 -- Runs ONCE. Anything here that ran twice would double up: a second
 -- ModUtil.Path.Wrap would nest another wrapper around UnitSplit, and a second
 -- data strip would walk lists the first pass already emptied.
@@ -1321,9 +1180,9 @@ end
 -- PingPongScale and Duration are baked into the art at load.
 local function on_reload()
     loadSettings()
-    logAlways(("settings reloaded; %s at scale %.2f, stacking %d, clone glow %s, outline %s")
-        :format(CONFIG.glowName(), CONFIG.resolvedScale(),
-                math.floor(clamp(settings.values.LightStacking, 1, 8, 4)),
+    logAlways(("settings reloaded; ground %s/%s at scale %.2f, clone glow %s, outline %s")
+        :format(tostring(settings.values.GroundFx), tostring(settings.values.GroundFxColor),
+                clamp(settings.values.GroundFxScale, 0.1, 12.0, 3.0),
                 settings.values.RemoveCloneGlow and "stripped" or "left",
                 settings.values.Outline and "on" or "off"))
 end

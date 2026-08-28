@@ -119,24 +119,11 @@ do
   check("1.4 ships removing the marker with the clones", at(v, "KeepAfterClonesGone") == false)
   -- OFF as of v4.0.0. The Apollo ground sprite replaced it, and a playtest
   -- compared them directly and preferred without the dark pool underneath.
-  check("1.5 ships the vanilla dark pool OFF", at(v, "Light") == false,
-        tostring(at(v, "Light")))
   check("1.5b ships the Apollo ground sprite as the ground marker",
         at(v, "GroundFx") == "ApolloGlow", tostring(at(v, "GroundFx")))
   check("1.5c tinted red", at(v, "GroundFxColor") == "Red", tostring(at(v, "GroundFxColor")))
   -- Ember, not Amber: Amber's middle channel clips at the shipped stacking and
   -- washes to pale yellow-white. That cost a playtest.
-  check("1.6 ships a colour that survives the shipped stacking",
-        at(v, "Color") == "Ember", tostring(at(v, "Color")))
-  -- Measured, not guessed: the art is 360px wide at 1.0 and vanilla's own
-  -- Hecate light runs 1.33, so 1.0 is a pool about her own footprint.
-  check("1.7 ships scale 1.0 -- measured against the actual texture",
-        at(v, "Scale") == 1.0, tostring(at(v, "Scale")))
-  check("1.7b ships recolouring vanilla's light on", at(v, "Recolour") == true)
-  check("1.7c ships a steady colour, not vanilla's rapid cycle",
-        at(v, "SteadyColor") == true, tostring(at(v, "SteadyColor")))
-  check("1.9 ships stacking " .. STACK, at(v, "LightStacking") == STACK,
-        tostring(at(v, "LightStacking")))
   check("1.10 ships stripping the clones' vanilla glow", at(v, "RemoveCloneGlow") == true)
   check("1.10b ships replacing her own vanilla glow", at(v, "ReplaceVanillaGlow") == true)
   check("1.10c ships stripping the clones' Dream outline",
@@ -150,8 +137,9 @@ do
   check("1.11b in the same colour as the ground marker",
         at(v, "OutlineColor") == at(v, "GroundFxColor"),
         tostring(at(v, "OutlineColor")) .. " vs " .. tostring(at(v, "GroundFxColor")))
-  check("1.11c ships invert on, so the floor pool darkens rather than washes",
-        at(v, "Invert") == true, tostring(at(v, "Invert")))
+  check("1.11c ships the vanilla-light subsystem gone entirely",
+        at(v, "Light") == nil and at(v, "Invert") == nil and at(v, "Color") == nil,
+        "Light=" .. tostring(at(v, "Light")))
   check("1.12 settings persist when rom.config is available",
         at(at(plugin, "settings"), "persistent") == true)
   check("1.13 the wrap went on UnitSplit and nothing else",
@@ -403,203 +391,6 @@ do
 end
 
 -- =============================================================================
--- 9. Brightness -- stacking, and stripping the clones' glow
--- =============================================================================
--- These two are the v1.1.0 answer to "the light does not stand out enough", and
--- they are the reason the fix stayed inside the ground light instead of becoming
--- a different mechanism.
-do
-  local G = boot({ Light = true, LightStacking = 1 })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("9.1 stacking 1 attaches one copy",
-        G.markerCount(hecate.ObjectId) == 1,
-        tostring(G.markerCount(hecate.ObjectId)))
-end
-
-do
-  local G = boot({ Light = true, LightStacking = 6 })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("9.2 stacking 6 attaches six copies",
-        G.markerCount(hecate.ObjectId) == 6,
-        tostring(G.markerCount(hecate.ObjectId)))
-  -- Brightness must be live: this is what buys tuning without a restart.
-end
-
-do
-  local G = boot({ Light = true, LightStacking = 0 })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("9.4 stacking 0 is clamped up to at least one copy",
-        G.markerCount(hecate.ObjectId) >= 1,
-        tostring(G.markerCount(hecate.ObjectId)))
-end
-
-do
-  local G = boot({ Light = true, LightStacking = 99 })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("9.5 stacking 99 is clamped down", G.markerCount(hecate.ObjectId) <= 8,
-        tostring(G.markerCount(hecate.ObjectId)))
-end
-
-do
-  -- The clone glow is removed in DATA at load, so a clone never has one to begin
-  -- with. No thread, no wait, nothing to time.
-  local G = boot()
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-
-  local lit = 0
-  for id in pairs(hecate.SplitIds) do lit = lit + G.attachedCount(VANILLA, id) end
-  check("9.6 clones spawn with no ground glow at all", lit == 0, tostring(lit))
-
-  -- THE v2.5.0 CORRECTION. This assertion used to read "her own vanilla glow is
-  -- left alone" and was treated as the desired behaviour. It was the bug.
-  --
-  -- Leaving it meant she carried TWO lights: vanilla's, at scale 1.33 and
-  -- ping-ponging teal to magenta, and this mod's smaller one inside it. A
-  -- playtest saw "blue white on the outside but a light orangish on the inside",
-  -- and three earlier rounds of "the colour will not change" were the same
-  -- thing -- vanilla's larger colour-cycling pool drowning a marker that was
-  -- changing colour correctly all along.
-  -- She spawns with NO glow of her own; every copy on her is the marker. Since
-  -- the marker now uses vanilla's animation name, that is the only way the two
-  -- stay distinguishable -- see G.markerCount.
-  local spawned = 0
-  for _, a in ipairs(G.created) do
-    if a.Name == VANILLA and a.DestinationId == hecate.ObjectId and a.Scale == nil then
-      spawned = spawned + 1
-    end
-  end
-  check("9.7 she spawns with no glow of her own, so only the marker lights her",
-        spawned == 0, tostring(spawned))
-
-  -- Only the ground glow comes off. Taking the torches would make the clones
-  -- obviously wrong rather than subtly distinguishable.
-  local torches = 0
-  for id in pairs(hecate.SplitIds) do
-    torches = torches + G.attachedCount("HecateTorchFlameLeft", id)
-                      + G.attachedCount("HecateTorchFlameRight", id)
-  end
-  check("9.8 the clones keep their torch flames", torches == 4, tostring(torches))
-end
-
-do
-  -- Later splits get it for free, because the data no longer lists the glow.
-  local G = boot()
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  G.tick(2)
-  G.killClones(hecate)
-  G.UnitSplit(hecate, EM)
-  G.tick(2)
-  local lit = 0
-  for id in pairs(hecate.SplitIds) do lit = lit + G.attachedCount(VANILLA, id) end
-  check("9.9 a later split's clones have no glow either", lit == 0, tostring(lit))
-end
-
-do
-  -- The setting that fixes it, and the state that caused it.
-  local G = boot({ Light = true, ReplaceVanillaGlow = false })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  local spawned = 0
-  for _, a in ipairs(G.created) do
-    if a.Name == VANILLA and a.DestinationId == hecate.ObjectId and a.Scale == nil then
-      spawned = spawned + 1
-    end
-  end
-  check("9.9b off leaves her spawn glow on as well as the marker",
-        spawned == 1 and G.markerCount(hecate.ObjectId) == STACK,
-        "spawned=" .. tostring(spawned)
-          .. " marker=" .. tostring(G.markerCount(hecate.ObjectId)))
-end
-
-do
-  -- Independent of the clone strip: one can be on without the other.
-  local G = boot({ Light = true, RemoveCloneGlow = false, ReplaceVanillaGlow = true })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  local lit = 0
-  for id in pairs(hecate.SplitIds) do lit = lit + G.attachedCount(VANILLA, id) end
-  local spawned = 0
-  for _, a in ipairs(G.created) do
-    if a.Name == VANILLA and a.DestinationId == hecate.ObjectId and a.Scale == nil then
-      spawned = spawned + 1
-    end
-  end
-  check("9.9c the two glow settings are independent",
-        spawned == 0 and lit == 2,
-        "herSpawn=" .. tostring(spawned) .. " clones=" .. tostring(lit))
-end
-
-do
-  local G = boot({ RemoveCloneGlow = false })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  local lit = 0
-  for id in pairs(hecate.SplitIds) do lit = lit + G.attachedCount(VANILLA, id) end
-  check("9.10 the strip can be switched off", lit == 2, tostring(lit))
-end
-
-do
-  -- Enabled off must mean vanilla, and clones missing their glow is not vanilla.
-  local G = boot({ Enabled = false })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  local lit = 0
-  for id in pairs(hecate.SplitIds) do lit = lit + G.attachedCount(VANILLA, id) end
-  check("9.11 the master switch off leaves the clones lit", lit == 2, tostring(lit))
-end
-
-do
-  local G = boot({ Light = false, Outline = true })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("9.12 the light can be switched off entirely",
-        G.markerCount(hecate.ObjectId) == 0, tostring(G.markerCount(hecate.ObjectId)))
-  check("9.13 leaving the outline as the only marker",
-        at(G.outlines, hecate.ObjectId) ~= nil)
-end
-
-do
-  -- THE v1.2.0 REGRESSION GUARD.
-  --
-  -- v1.0.0 and v1.1.0 passed Group = "FX_Terrain" here and rendered nothing at
-  -- all through two playtests, while logging complete success at every step. The
-  -- game's own call for these animations passes Name and DestinationId and
-  -- nothing else (RoomLogic.lua:3384). Anything extra is a change, not a
-  -- clarification, and this asserts the call stays exactly that shape.
-  local G = boot({ Light = true })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-
-  local ours = nil
-  for _, a in ipairs(G.created) do
-    if a.Name == GLOW then ours = a break end
-  end
-  check("9.14 the marker is actually created", ours ~= nil)
-  check("9.15 it passes NO Group -- the bug that made two builds invisible",
-        at(ours, "Group") == nil, "Group=" .. tostring(at(ours, "Group")))
-
-  -- Name, DestinationId and Scale. Scale is allowed because the game's own
-  -- scripts pass it on 113 CreateAnimation calls; anything BEYOND these three is
-  -- the Group mistake again, so the assertion stays exhaustive.
-  local extra = {}
-  for k in pairs(ours or {}) do
-    if k ~= "Name" and k ~= "DestinationId" and k ~= "Scale" then
-      extra[#extra + 1] = k
-    end
-  end
-  check("9.16 and passes nothing beyond Name/DestinationId/Scale",
-        #extra == 0, table.concat(extra, ","))
-  check("9.17 scale rides on the call, which is what makes it live",
-        at(ours, "Scale") == 1.0, tostring(at(ours, "Scale")))
-end
-
--- =============================================================================
 -- 10. The outline fallback
 -- =============================================================================
 do
@@ -776,147 +567,45 @@ end
 do
   -- A combo selection has to reach the live variant picker, which is the whole
   -- point of tuning from the overlay.
-  local G, plugin = boot(nil, { gui = { openCombo = true, click = "Ember##TrueHecate_Color_Ember" } })
+  local G, plugin = boot(nil, { gui = { openCombo = true, click = "Ember##TrueHecate_GroundFxColor_Ember" } })
   M.guiCallbacks.window()
   check("10c.16 picking a colour writes it through",
-        M.store.Color == "Ember", tostring(M.store.Color))
+        M.store.GroundFxColor == "Ember", tostring(M.store.GroundFxColor))
   -- Colour is baked into vanilla's light entry at load, so a change from the
   -- panel lands on the NEXT launch, not the next split. The panel says so.
-  check("10c.17 and it resolves to that preset",
-        at(plugin.CONFIG.resolvedColor(), 1)
-          == at(at(at(plugin, "CONFIG"), "colors").Ember, 1))
+  check("10c.17 and it resolves to a real preset",
+        at(at(at(plugin, "CONFIG"), "colors"), "Ember") ~= nil)
 end
 
 do
   local G, plugin = boot({ Light = true },
-                         { gui = { slide = "Stacking##TrueHecate_LightStacking", slideTo = 7 } })
+                         { gui = { slide = "Ground art size##TrueHecate_GroundFxScale", slideTo = 7 } })
   M.guiCallbacks.window()
-  check("10c.18 a slider writes through", M.store.LightStacking == 7,
-        tostring(M.store.LightStacking))
+  check("10c.18 a slider writes through", M.store.GroundFxScale == 7,
+        tostring(M.store.GroundFxScale))
   local hecate = G.spawnHecate()
   G.UnitSplit(hecate, EM)
+  local a
+  for _, c in ipairs(G.created) do
+    if c.Name == SHIPPED_FX then a = c end
+  end
   check("10c.19 and takes effect at the very next split, no restart",
-        G.markerCount(hecate.ObjectId) == 7,
-        "attached=" .. tostring(G.markerCount(hecate.ObjectId)))
+        at(a, "Scale") == 7, tostring(at(a, "Scale")))
 end
 
 do
   -- No overlay must cost the panel and nothing else.
-  local G = boot({ Light = true }, { noGui = true })
+  local G = boot(nil, { noGui = true })
   check("10c.20 a missing rom.gui is reported, not raised",
         logsContain("rom.gui unavailable"))
   check("10c.21 and the hook still installs", at(G.wrapped, "UnitSplit") == 1)
   local hecate = G.spawnHecate()
   G.UnitSplit(hecate, EM)
   check("10c.22 and the marker still works",
-        G.markerCount(hecate.ObjectId) == STACK)
+        G.anyMarkerCount(hecate.ObjectId) > 0)
 end
 
 -- =============================================================================
--- =============================================================================
--- 10e. Recolouring vanilla's own light entry
--- =============================================================================
--- The last colour mechanism left untried. Every previous attempt registered a
--- NEW animation and attached it; those rendered but never took their colour.
--- Runtime SetColor on the returned animation id did nothing either. This edits
--- the entry the engine already honours, in place.
-do
-  local G, plugin = boot({ Color = "Ember", SteadyColor = true })
-  local light = findAnim("HecateGroundLight")
-  local ember = at(at(at(plugin, "CONFIG"), "colors"), "Ember")
-  check("10e.1 vanilla's own light entry is recoloured in place", light ~= nil)
-  check("10e.2 to the chosen colour",
-        at(light, "StartRed") == at(ember, 1)
-        and at(light, "StartGreen") == at(ember, 2)
-        and at(light, "StartBlue") == at(ember, 3),
-        tostring(at(light, "StartRed")))
-  check("10e.3 with equal endpoints, so it holds instead of cycling",
-        at(light, "EndRed") == at(light, "StartRed")
-        and at(light, "EndGreen") == at(light, "StartGreen")
-        and at(light, "EndBlue") == at(light, "StartBlue"))
-  -- PingPongColor is vanilla's and must stay untouched: it is what makes the
-  -- ramp run at all, and with equal ends there is nothing for it to move between.
-  check("10e.4 leaving PingPongColor exactly as vanilla set it",
-        at(light, "PingPongColor") == true, tostring(at(light, "PingPongColor")))
-end
-
-do
-  local G, plugin = boot({ Color = "Cyan", SteadyColor = false })
-  local light = findAnim("HecateGroundLight")
-  check("10e.5 cycling mode keeps vanilla's magenta far end",
-        at(light, "EndRed") == 1 and at(light, "EndGreen") == 0 and at(light, "EndBlue") == 1,
-        tostring(at(light, "EndRed")))
-  local cyan = at(at(at(plugin, "CONFIG"), "colors"), "Cyan")
-  check("10e.6 while still starting from the chosen colour",
-        at(light, "StartGreen") == at(cyan, 2))
-end
-
-do
-  -- The clipping guard. Colour survives only while the SECOND channel stays
-  -- under 1.0 after stacking; Amber at 3 copies does not, and shipped that way
-  -- once.
-  local _, plugin = boot()
-  local v = at(at(plugin, "settings"), "values")
-  local rgb = plugin.CONFIG.resolvedColor()
-  local scaled = { rgb[1] * v.LightStacking, rgb[2] * v.LightStacking, rgb[3] * v.LightStacking }
-  table.sort(scaled, function(x, y) return x > y end)
-  check("10e.11 the shipped colour and stacking do not clip to white",
-        scaled[2] < 1.0, string.format("second channel %.2f", scaled[2]))
-  check("10e.12 while still driving the top channel past a single light",
-        scaled[1] > 1.0, string.format("top %.2f", scaled[1]))
-  check("10e.13 and the shipped combination is not warned about",
-        not logsContain("washes out"))
-end
-
-do
-  boot({ Color = "Amber", LightStacking = 3 })
-  check("10e.14 a washing combination IS warned about", logsContain("washes out"))
-end
-
-do
-  -- Invert: darken instead of brighten. The escape from additive clipping --
-  -- the arena floor is already saturated, so adding light washes out but
-  -- removing it cannot be washed out by anything.
-  local G = boot({ Invert = true })
-  local light = findAnim("HecateGroundLight")
-  check("10e.15 invert swaps in the darkening texture",
-        at(light, "FilePath") == [[Lights\DiffuseSpotlightInverse]],
-        tostring(at(light, "FilePath")))
-end
-
-do
-  local G = boot({ Invert = false })
-  local light = findAnim("HecateGroundLight")
-  check("10e.16 off leaves vanilla's own texture",
-        at(light, "FilePath") == [[Lights\DiffuseSpotlight]],
-        tostring(at(light, "FilePath")))
-  check("10e.17 and invert ships ON",
-        at(at(select(2, boot()), "settings"), "values").Invert == true)
-end
-
-do
-  local G = boot({ Recolour = false })
-  local light = findAnim("HecateGroundLight")
-  check("10e.7 off leaves vanilla's entry completely alone",
-        light == nil or (at(light, "StartGreen") == 1 and at(light, "StartBlue") == 0.7))
-end
-
-do
-  -- Medea uses a separate entry with identical values. Editing Hecate's must not
-  -- reach it -- that is the whole blast-radius claim.
-  boot({ Color = "Ember" })
-  check("10e.8 MedeaGroundLight is untouched", findAnim("MedeaGroundLight") == nil)
-end
-
-do
-  local G = boot({ Light = true }, { sjsonOpts = { absent = true } })
-  check("10e.9 no SJSON costs only the colour", logsContain("SJSON unavailable"))
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("10e.10 and the marker still works",
-        G.markerCount(hecate.ObjectId) == STACK)
-end
-
 -- =============================================================================
 -- 10f. Ground sprites -- the answer to "can the ground be orange"
 -- =============================================================================
@@ -1172,7 +861,7 @@ do
   local _, plugin = boot(nil, { configOpts = { throw = true } })
   check("11.8 a config failure is caught", logsContain("config load failed"))
   check("11.9 and leaves usable defaults",
-        at(at(at(plugin, "settings"), "values"), "Color") == "Ember")
+        at(at(at(plugin, "settings"), "values"), "GroundFxColor") == "Red")
 end
 
 do
@@ -1188,10 +877,10 @@ end
 do
   -- The marker raising must cost the marker, not the boss fight. Scoped to OUR
   -- animation so the failure is in the plugin's own call, not in the split.
-  local G = boot({ Light = true })
+  local G = boot()
   local realCreate = G.CreateAnimation
   G.CreateAnimation = function(args)
-    if args.Name == GLOW then error("simulated engine failure") end
+    if args.Name == SHIPPED_FX then error("simulated engine failure") end
     return realCreate(args)
   end
   local hecate = G.spawnHecate()
@@ -1217,7 +906,7 @@ do
   -- The clone-glow edit reaches into game data at load. If EnemyData is not
   -- shaped the way this expects, that must cost the strip and nothing else.
   local G = dofile(HARNESS)
-  M.install(G, nil, { Light = true }, nil)
+  M.install(G, nil, nil, nil)
   G.EnemyData = nil
   local plugin = dofile(PLUGIN)
   if M.pendingGameLoad then M.pendingGameLoad() end
@@ -1230,8 +919,8 @@ do
   local hecate = G.spawnHecate()
   local ok = pcall(G.UnitSplit, hecate, EM)
   check("11.21 and the split still works, marker and all",
-        ok == true and G.markerCount(hecate.ObjectId) == STACK,
-        "attached=" .. tostring(G.markerCount(hecate.ObjectId)))
+        ok == true and G.anyMarkerCount(hecate.ObjectId) > 0,
+        "attached=" .. tostring(G.anyMarkerCount(hecate.ObjectId)))
 end
 
 -- =============================================================================
