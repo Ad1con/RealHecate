@@ -535,6 +535,40 @@ do
 end
 
 do
+  -- Every widget in the panel must name a setting that actually EXISTS.
+  --
+  -- The v4.1.0 cleanup removed seven settings and left their widgets behind:
+  -- Light, Recolour, Invert, SteadyColor, Color, LightStacking and Scale were
+  -- all still drawn, writing through saveSetting to keys with no default. The
+  -- suite passed anyway, because the ImGui mock happily records any label. This
+  -- closes that: widget labels carry ##TrueHecate_<key>, so the key is
+  -- recoverable and checkable against the real settings table.
+  local G, plugin = boot(nil, { gui = { openCombo = true } })
+  M.guiCallbacks.window()
+  M.guiCallbacks.menuBar()
+  local values = at(at(plugin, "settings"), "values")
+  local orphans, seen = {}, {}
+  for _, l in ipairs(M.labels) do
+    local key = tostring(l):match("##TrueHecate_([A-Za-z]+)")
+    if key and not seen[key] then
+      seen[key] = true
+      if values[key] == nil then orphans[#orphans + 1] = key end
+    end
+  end
+  check("10c.11b every panel widget names a real setting",
+        #orphans == 0, table.concat(orphans, ", "))
+
+  -- And the reverse: a setting with no widget is unreachable from the panel.
+  local missing = {}
+  for key in pairs(values) do
+    if not seen[key] then missing[#missing + 1] = key end
+  end
+  table.sort(missing)
+  check("10c.11c and every setting has a widget",
+        #missing == 0, table.concat(missing, ", "))
+end
+
+do
   -- ImGui widgets are keyed by their label STRING. Two widgets sharing a label
   -- are one widget, and each will move the other. This is the reason every label
   -- in the panel carries a ##unique suffix, and the reason it is worth asserting
@@ -579,7 +613,7 @@ end
 
 do
   local G, plugin = boot({ Light = true },
-                         { gui = { slide = "Ground art size##TrueHecate_GroundFxScale", slideTo = 7 } })
+                         { gui = { slide = "Ground size##TrueHecate_GroundFxScale", slideTo = 7 } })
   M.guiCallbacks.window()
   check("10c.18 a slider writes through", M.store.GroundFxScale == 7,
         tostring(M.store.GroundFxScale))

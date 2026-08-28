@@ -2,7 +2,7 @@
   "namespace": "Adicon",
   "name": "TrueHecate",
   "description": "Puts a light on the real Hecate when she splits into three, so you can tell her from the clones.",
-  "version_number": "4.1.1",
+  "version_number": "4.2.0",
   "dependencies": [
     "Hell2Modding-Hell2Modding-1.0.78",
     "LuaENVY-ENVY-1.2.0",

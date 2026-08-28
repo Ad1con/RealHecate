@@ -1,5 +1,5 @@
 -- =============================================================================
--- TrueHecate (v4.1.1) -- marks the real Hecate during her Triple Divide.
+-- TrueHecate (v4.2.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
@@ -395,14 +395,14 @@ local CONFIG_DESCRIPTIONS = {
     KeepAfterClonesGone = "Leave the marker on for the rest of the fight instead of removing it when the clones die.",
 
     GroundFx = "Ground art under the real Hecate: None or ApolloGlow. Colour and size are set separately by GroundFxColor and GroundFxScale. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    GroundFxColor = "Tint for the ground art: None (Apollo's own gold-orange) or any colour preset. Red is the strongest contrast against this arena's cyan floor.",
+    GroundFxColor = "Tint for the ground art. One of: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Red gives the strongest contrast against this arena's cyan floor; None leaves Apollo's own gold-orange. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     GroundFxScale = "Size of the ground art. RESTART REQUIRED.",
     ReplaceVanillaGlow = "Take vanilla's own ground glow off the real Hecate so this mod's light is the only one under her. Off leaves both, and vanilla's teal-to-magenta pulse will fight this mod's colour. RESTART REQUIRED.",
     StripCloneDreamOutline = "Dream Dive only: take vanilla's outline off the clones, so the real Hecate is the only outlined one. Without it the base fight's clones share her exact red outline. No effect outside Dream runs. RESTART REQUIRED.",
     RemoveCloneGlow = "Take vanilla's own ground glow off the two clones, so the real Hecate is the only one with a lit floor. The biggest readability win here. RESTART REQUIRED.",
 
     Outline = "Fallback if the ground light still is not enough: draw a coloured outline around the real Hecate. Unmistakable, but it looks like a mod. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    OutlineColor = "Any of the same ten presets. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
+    OutlineColor = "Colour of the outline. One of: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Matching it to GroundFxColor keeps the two markers reading as one scheme. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     OutlineThickness = "How heavy the outline is, 1 to 10. The game's own elite outlines are 3. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     OutlineOpacity = "0 to 1. The game's own elite outlines are 0.8. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
 }
@@ -1021,35 +1021,25 @@ local function renderWindow()
             imgui.Spacing()
             imgui.Separator()
 
-            imgui.Text("Ground light")
-            checkSetting(imgui, "Light", "Show the ground light")
-            checkSetting(imgui, "Recolour", "Recolour her light" .. RESTART_ONLY)
-            checkSetting(imgui, "Invert", "Darken instead of lighten" .. RESTART_ONLY)
+            imgui.Text("Ground marker")
             comboSetting(imgui, "GroundFx", GROUND_FX_ORDER, "Ground art")
-            comboSetting(imgui, "GroundFxColor", CONFIG.colorOrder, "Ground tint")
-            sliderSetting(imgui, "GroundFxScale", "Ground art size", 0.1, 12.0)
-            checkSetting(imgui, "SteadyColor", "Hold one colour" .. RESTART_ONLY)
-            comboSetting(imgui, "Color", CONFIG.colorOrder, "Colour")
-            sliderSetting(imgui, "LightStacking", "Stacking", 1, 8, "%.0f")
-            sliderSetting(imgui, "Scale", "Scale", 0.25, 6.0)
-            imgui.TextDisabled("art is 360px wide at 1.0; vanilla runs 1.33")
+            comboSetting(imgui, "GroundFxColor", CONFIG.colorOrder, "Ground colour")
+            sliderSetting(imgui, "GroundFxScale", "Ground size", 0.1, 12.0)
 
             imgui.Spacing()
-            imgui.TextDisabled("colour is baked at load: restart to apply")
+            imgui.Separator()
+            imgui.Text("Outline")
+            checkSetting(imgui, "Outline", "Outline the real Hecate")
+            comboSetting(imgui, "OutlineColor", CONFIG.colorOrder, "Outline colour")
+            sliderSetting(imgui, "OutlineThickness", "Thickness", 1, 10, "%.0f")
+            sliderSetting(imgui, "OutlineOpacity", "Opacity", 0.0, 1.0)
 
             imgui.Spacing()
             imgui.Separator()
             imgui.Text("Clones")
             checkSetting(imgui, "RemoveCloneGlow", "Strip clone ground glow" .. RESTART_ONLY)
             checkSetting(imgui, "ReplaceVanillaGlow", "Replace her vanilla glow" .. RESTART_ONLY)
-
-            imgui.Spacing()
-            imgui.Separator()
-            imgui.Text("Outline (fallback)")
-            checkSetting(imgui, "Outline", "Outline the real Hecate")
-            comboSetting(imgui, "OutlineColor", CONFIG.colorOrder, "Outline colour")
-            sliderSetting(imgui, "OutlineThickness", "Thickness", 1, 10, "%.0f")
-            sliderSetting(imgui, "OutlineOpacity", "Opacity", 0.0, 1.0)
+            checkSetting(imgui, "StripCloneDreamOutline", "Strip clone Dream outline" .. RESTART_ONLY)
 
             imgui.Spacing()
             imgui.Separator()
