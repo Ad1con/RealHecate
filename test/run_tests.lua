@@ -632,12 +632,15 @@ do
 end
 
 do
-  local G = boot({ GroundFx = "CastCircle" })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("10f.3 the ring option attaches the ring",
-        G.attachedCount("ApolloAoECircleA", hecate.ObjectId) == 1)
-  check("10f.4 and not the glow", G.attachedCount(SHIPPED_FX, hecate.ObjectId) == 0)
+  -- The palette is deliberately small. ApolloAoECircleA was offered here and
+  -- removed unused: it carries its own PingPongColor cycle that would fight
+  -- GroundFxColor, and spawns a VisualFx every ~0.2s. Anything added back must
+  -- be a static-coloured looping sprite, and must be seen in a fight first.
+  local _, plugin = boot()
+  check("10f.3 the palette offers only what has been confirmed in game",
+        #plugin.GROUND_FX_ORDER == 2, tostring(#plugin.GROUND_FX_ORDER))
+  check("10f.4 and ApolloAoECircleA is not among it",
+        plugin.GROUND_FX.CastCircle == nil)
 end
 
 do
@@ -706,7 +709,7 @@ do
   -- is not checkable from Lua, so it is pinned as an explicit allow-list here:
   -- both entries were read out of the animation data and carry Loop = true.
   local _, plugin = boot()
-  local looping = { ApolloGroundGlow = true, ApolloAoECircleA = true }
+  local looping = { ApolloGroundGlow = true }
   local bad = {}
   for key, name in pairs(plugin.GROUND_FX) do
     if name ~= nil and not looping[name] then bad[#bad + 1] = key .. "/" .. name end

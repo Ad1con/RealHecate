@@ -1,5 +1,5 @@
 -- =============================================================================
--- TrueHecate (v4.1.0) -- marks the real Hecate during her Triple Divide.
+-- TrueHecate (v4.1.1) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
@@ -394,7 +394,7 @@ local CONFIG_DESCRIPTIONS = {
     MarkInExtremeMeasures = "Mark the real Hecate when she splits in Extreme Measures / Rivals (HecateCopyEM clones).",
     KeepAfterClonesGone = "Leave the marker on for the rest of the fight instead of removing it when the clones die.",
 
-    GroundFx = "Ground art under the real Hecate. None, ApolloGlow (gold-orange), AresRed (near-pure red -- the strongest contrast against this arena's cyan floor), HestiaOrange, ZeusGold, HeraGreen, PoseidonTeal, DemeterBlue, AphroditePink, or CastCircle (a ring, which reads by shape rather than colour). RESTART REQUIRED.",
+    GroundFx = "Ground art under the real Hecate: None or ApolloGlow. Colour and size are set separately by GroundFxColor and GroundFxScale. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     GroundFxColor = "Tint for the ground art: None (Apollo's own gold-orange) or any colour preset. Red is the strongest contrast against this arena's cyan floor.",
     GroundFxScale = "Size of the ground art. RESTART REQUIRED.",
     ReplaceVanillaGlow = "Take vanilla's own ground glow off the real Hecate so this mod's light is the only one under her. Off leaves both, and vanilla's teal-to-magenta pulse will fight this mod's colour. RESTART REQUIRED.",
@@ -635,11 +635,19 @@ local GROUND_FX = {
     None       = nil,
     -- Loop = true, 15 frames. The one confirmed working in a real fight.
     ApolloGlow = "ApolloGroundGlow",
-    -- A ring rather than a pool. Also loops. Kept because shape reads where
-    -- colour does not, though a playtest found it close to the inverted pool.
-    CastCircle = "ApolloAoECircleA",
 }
-local GROUND_FX_ORDER = { "None", "ApolloGlow", "CastCircle" }
+-- Two entries, so this is effectively on/off. It stays a named list rather than a
+-- boolean because the thing being chosen is WHICH ART, and a second shape may
+-- earn its place later -- but only after being seen in a fight.
+--
+-- ApolloAoECircleA (a cast ring) was offered here and removed unused. It looked
+-- like a shape-based alternative, but reading its definition it is not a clean
+-- equivalent: PingPongColor = true gives it a colour cycle of its own that would
+-- fight GroundFxColor, StartAlpha fades 0.6 to 0.3, and VisualFx spawns a further
+-- effect every ~0.2s for as long as it lives. It is an AoE telegraph, not a
+-- marker. Shipping it untested would have repeated the AxeNovaLight mistake --
+-- art chosen by reading one property and ignoring the rest.
+local GROUND_FX_ORDER = { "None", "ApolloGlow" }
 
 -- unit.CreateAnimations is consumed engine-side at spawn -- no Lua reads it, so
 -- there is no hook point and no way to stop the clones' glow from being made in
