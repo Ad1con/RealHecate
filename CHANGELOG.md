@@ -7,6 +7,8 @@ version, so the square brackets are load-bearing -- the action looks for
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-29
+
 First public release.
 
 Marks the real Hecate during her Triple Divide with a red glow on the ground and
@@ -21,3 +23,6 @@ a red outline, so she can be told from her two clones.
 - Eleven settings, all also on a panel in the modding overlay.
 - Modifies no game files. Edits `EnemyData` in memory, attaches art that ships
   with the game, and wraps one function (`UnitSplit`).
+
+[unreleased]: https://github.com/Ad1con/RealHecate/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/Ad1con/RealHecate/compare/cbb81f786e424f85f4498ccae59dd0d8cab83bc6...1.0.0
