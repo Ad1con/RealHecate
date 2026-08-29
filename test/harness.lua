@@ -29,7 +29,7 @@ G.EnemyData = {
   },
   HecateCopy = {
     CreateAnimations = { "HecateGroundGlow", "HecateTorchFlameLeft", "HecateTorchFlameRight" },
-    -- EnemyData_Hecate.lua:5632. RED -- the same colour the real Hecate gets in a
+    -- EnemyData_Hecate.lua:5632. RED -- the same color the real Hecate gets in a
     -- Dream run, which is why the outline identifies nothing there unless the
     -- clones are stripped. GrannyTexture must survive the strip.
     SetupEvents = {
@@ -130,7 +130,7 @@ function G.CreateAnimation(args)
 end
 
 -- SetColor records the tint attempt so the suite can assert it was made, without
--- claiming to know whether the engine honours it on a light.
+-- claiming to know whether the engine honors it on a light.
 G.colored = {}
 function G.SetColor(args)
   G.colored[#G.colored + 1] = args
@@ -140,7 +140,7 @@ end
 -- modelled as clearing EVERY live copy of that name there. That is the same
 -- assumption detachMarker makes about stacked lights; if the game turns out to
 -- stop only one, this is the line that has to change and the suite will then say
--- so rather than the behaviour quietly differing from the tests.
+-- so rather than the behavior quietly differing from the tests.
 function G.StopAnimation(args)
   G.stopped[#G.stopped + 1] = args
   G.events[#G.events + 1] = { kind = "stop", Name = args.Name, DestinationId = args.DestinationId }

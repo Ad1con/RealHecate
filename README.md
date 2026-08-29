@@ -4,13 +4,13 @@
 
 The real Hecate will have a red glow under her and a red outline. The two clones
 will not. There are options to disable either the glow or the outline, and to
-change their colours.
+change their colors.
 
 Works in the ordinary fight, in the Rivals fight, and in Dream Dives. Hecate and
 her clones already have red outlines during Dream Dives, so the clones' outlines
 are removed there and only the real Hecate keeps one.
 
-The mod uses only in-game assets and changes no fight or gameplay behaviour — it
+The mod uses only in-game assets and changes no fight or gameplay behavior — it
 is purely cosmetic. It does make the fight easier, since telling the clones apart
 is normally part of it.
 
@@ -29,17 +29,17 @@ exit, so changes made while it is running are discarded.
 |---|---|---|
 | `Enabled` | `true` | Master switch. Off is fully vanilla. |
 | `GroundFx` | `true` | Show the red glow on the ground. |
-| `GroundFxColor` | `Red` | Colour of the ground glow. |
+| `GroundFxColor` | `Red` | Color of the ground glow. |
 | `GroundFxScale` | `3` | Size of the ground glow. |
 | `Outline` | `true` | Outline her silhouette. |
-| `OutlineColor` | `Red` | Colour of the outline. |
+| `OutlineColor` | `Red` | Color of the outline. |
 | `OutlineThickness` | `6` | 1–10. The game's own elite outlines are `3`. |
 | `OutlineOpacity` | `1.0` | 0–1. The game's own are `0.8`. |
 | `CloneVanillaGroundFx` | `true` | Whether the **clones** keep vanilla's ground effects — their shadowing and the glowing symbols on the floor. Off darkens them, so only the real Hecate has ground effects. |
 | `HecateVanillaGroundFx` | `true` | Whether **she** keeps vanilla's ground effects under the red glow. Off isolates the marker. |
 | `StripCloneDreamOutline` | `true` | Dream Dive only. Takes vanilla's outline off the clones so the real Hecate is the only outlined one. No effect outside Dream runs. |
 
-**Colours** for `GroundFxColor` and `OutlineColor`:
+**Colors** for `GroundFxColor` and `OutlineColor`:
 `Amber` `Ember` `Violet` `Gold` `Teal` `Cyan` `Green` `Magenta` `Red` `White`
 
 Red is the default because it is roughly the complement of the arena's cyan
@@ -47,7 +47,7 @@ floor, which is the strongest contrast available there.
 
 ## How it knows which one is real
 
-Not by health, behaviour, or position — the game already knows.
+Not by health, behavior, or position — the game already knows.
 
 Every split in the fight goes through one function, `UnitSplit`. It is called on
 the real Hecate's own enemy table and records the clones it creates as

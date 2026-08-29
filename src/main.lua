@@ -1,7 +1,7 @@
 -- =============================================================================
 -- RealHecate (v5.3.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
--- When Hecate splits into three, this puts a coloured light on the ground under
+-- When Hecate splits into three, this puts a colored light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
 -- goes away when the clones do, so the rest of the fight is untouched.
 --
@@ -23,7 +23,7 @@
 --
 -- So after any split the real Hecate is the `enemy` the function was called on,
 -- her ObjectId is unchanged, and the clones' ObjectIds are exactly the keys of
--- enemy.SplitIds. Nothing has to be inferred from health, behaviour or position.
+-- enemy.SplitIds. Nothing has to be inferred from health, behavior or position.
 --
 -- Crucially, THE REAL ONE NEVER CHANGES for the whole fight. Checked against
 -- every mechanic that could plausibly reassign her:
@@ -83,12 +83,12 @@
 --     DieWithOwner = true
 --     GroupName = "FX_Terrain"
 --
--- This plugin registers its own copy of that pair in a distinct colour and
+-- This plugin registers its own copy of that pair in a distinct color and
 -- attaches it to the real Hecate. It is the same mechanism the game uses in the
 -- same role, so it follows her through every teleport and cleans itself up on
 -- her death without any code here.
 --
--- The cost is that art is baked in at load: the light's colour and size settings
+-- The cost is that art is baked in at load: the light's color and size settings
 -- below are RESTART-ONLY.
 --
 -- -----------------------------------------------------------------------------
@@ -119,7 +119,7 @@
 --
 -- Note also what failed here: every log line said the plugin was working, because
 -- the plugin genuinely did everything it meant to. Success logging proves a call
--- was made, never that the engine honoured it.
+-- was made, never that the engine honored it.
 --
 -- -----------------------------------------------------------------------------
 -- MAKING IT READ
@@ -157,7 +157,7 @@
 --
 -- Two notes on the outline for whoever tunes it:
 --
---   * It needs no sjson, so colour, thickness and opacity are LIVE.
+--   * It needs no sjson, so color, thickness and opacity are LIVE.
 --   * AddOutline takes 0-255 channels, where the light's sjson takes 0-1. Easy
 --     to get backwards; colorTo255 exists so it is only written once.
 --
@@ -225,18 +225,18 @@ end
 
 local CONFIG = {}
 
--- Colour presets, as 0-1 channels. The comment on each is its perceived
+-- Color presets, as 0-1 channels. The comment on each is its perceived
 -- brightness under 0.2R + 0.7G + 0.07B -- additive light is only as bright as
 -- the channels it adds, so a saturated red reads dim on the ground however
 -- strong the number looks.
 -- The second number on each line is the CHANNEL GAP: top channel minus middle
--- channel. It predicts how well a colour survives being driven hard, which
+-- channel. It predicts how well a color survives being driven hard, which
 -- matters more here than luminance does.
 --
 -- Additive light clips per channel at 1.0. Once the top TWO channels are both
--- clipped, the light is white no matter what colour was asked for. A colour
+-- clipped, the light is white no matter what color was asked for. A color
 -- whose middle channel sits well below its top one therefore keeps its hue at
--- intensities where a balanced colour has already washed out.
+-- intensities where a balanced color has already washed out.
 --
 -- That is exactly what a playtest found: Gold (1.00, 0.78) has a gap of only
 -- 0.22, so at five stacked copies both red and green pinned to 1.0 and it read
@@ -259,7 +259,7 @@ CONFIG.colorOrder = { "Amber", "Ember", "Violet", "Gold", "Teal",
                       "Cyan", "Green", "Magenta", "Red", "White" }
 
 -- The ground glow additionally accepts None, meaning "leave the art its own
--- gold-orange". resolvedGroundColor has always honoured that; the dropdown did
+-- gold-orange". resolvedGroundColor has always honored that; the dropdown did
 -- not offer it, so it was reachable from the .cfg and not from the panel.
 CONFIG.groundColorOrder = { "None" }
 for _, name in ipairs(CONFIG.colorOrder) do
@@ -276,7 +276,7 @@ local settings = {
         -- the arena could not wash out.
         --
         -- The Apollo ground sprite made it redundant: that renders in whatever
-        -- colour is asked for, so a dark pool underneath a coloured one only
+        -- color is asked for, so a dark pool underneath a colored one only
         -- muddies it. A playtest compared the two directly and preferred without.
         --
         -- Invert, Recolour, SteadyColor, Color, Scale and LightStacking all still
@@ -288,7 +288,7 @@ local settings = {
         -- bug was fixed, so raising it is a known-good lever rather than a guess.
         -- Down from 4. With a nearly-flat falloff, each extra copy widens the
         -- apparent pool as well as brightening it.
-        -- Multiplies the colour channels before stacking. Together these two set
+        -- Multiplies the color channels before stacking. Together these two set
         -- the peak: LightStacking x Brightness x channel. Above about 2.0 on the
         -- top channel the light starts washing to white -- see CONFIG.colors.
 
@@ -314,18 +314,18 @@ local settings = {
         -- this mod's 1.0, so it spreads wider and rings the marker -- and it
         -- ping-pongs teal (0, 1, 0.7) to magenta (1, 0, 1) on a one second loop.
         -- A playtest described exactly that: "blue white on the outside but a
-        -- light orangish on the inside". Three earlier rounds of "the colour is
-        -- not changing" were the same thing: the colour WAS changing, in a core
-        -- that vanilla's larger, colour-cycling pool was drowning.
+        -- light orangish on the inside". Three earlier rounds of "the color is
+        -- not changing" were the same thing: the color WAS changing, in a core
+        -- that vanilla's larger, color-cycling pool was drowning.
         --
         -- Note this plugin previously had a test asserting her own glow was
         -- "left alone", treating that as correct. It was the bug.
         -- ON: she keeps vanilla's own ground glow as well as the mod's red disc.
         --
         -- This was off through development for a good reason at the time -- while
-        -- the mod was trying to COLOUR a light, vanilla's teal-to-magenta cycle
-        -- sat on top of it and drowned the colour, which cost several rounds of
-        -- "the colour is not changing" when it was changing all along.
+        -- the mod was trying to COLOR a light, vanilla's teal-to-magenta cycle
+        -- sat on top of it and drowned the color, which cost several rounds of
+        -- "the color is not changing" when it was changing all along.
         --
         -- That stopped applying once the marker became a sprite rather than a
         -- light: the red disc renders on its own terms and does not compete for
@@ -333,7 +333,7 @@ local settings = {
         -- glow adds shadowing and keeps the ground under her looking like the
         -- game's own art rather than a flat disc.
         --
-        -- Off is still worth keeping: if a future colour reads poorly against
+        -- Off is still worth keeping: if a future color reads poorly against
         -- vanilla's cycle, this is the switch that isolates the marker.
         HecateVanillaGroundFx = true,
         -- Dream Dive only. See stripCloneOutlineData: without this, the base
@@ -342,7 +342,7 @@ local settings = {
         StripCloneDreamOutline = true,
         -- Ember, not Amber: at the shipped 3 copies Amber reaches (3.00, 1.35,
         -- 0.24) and its middle channel clips, washing to pale yellow-white. Ember
-        -- peaks at (3.00, 0.90, 0.15) and holds its colour.
+        -- peaks at (3.00, 0.90, 0.15) and holds its color.
         -- Recolour vanilla's OWN HecateGroundLight entry rather than register
         -- a new animation. See recolourVanillaLight for why that distinction is
         -- the whole story.
@@ -350,12 +350,12 @@ local settings = {
         --
         -- Additive light can only ADD. Her arena floor is already saturated with
         -- cyan, so an orange light on it produces cyan PLUS orange, which clips
-        -- toward white. That is why every colour tried has read as blue-silver,
+        -- toward white. That is why every color tried has read as blue-silver,
         -- and why more stacking made it whiter rather than more orange. It is
-        -- arithmetic, not a bug, and no colour tuning can beat it.
+        -- arithmetic, not a bug, and no color tuning can beat it.
         --
         -- Inverting sidesteps the fight entirely. DiffuseSpotlightInverse is the
-        -- same 360x180 ellipse with its centre at 42 instead of 213 (measured by
+        -- same 360x180 ellipse with its center at 42 instead of 213 (measured by
         -- extracting Fx.pkg with deppth2), so it darkens the floor under her.
         -- Nothing in the scene can add its way over a subtraction.
         -- ON. Confirmed working in a playtest: a dark navy pool under exactly
@@ -363,10 +363,10 @@ local settings = {
         -- copies are attached at all, Invert controls whether those copies
         -- darken or brighten, and LightStacking is then how DARK the pool goes.
         -- None, ApolloGlow (vanilla's orange ground glow) or CastCircle (a ring,
-        -- which reads by shape rather than colour). See GROUND_FX.
+        -- which reads by shape rather than color). See GROUND_FX.
         GroundFx = true,
         -- Tints the ground sprite. "None" leaves Apollo's own gold-orange.
-        -- Everything else is one of the colour presets, passed as CreateAnimation's
+        -- Everything else is one of the color presets, passed as CreateAnimation's
         -- Color argument -- which is how vanilla tints sprites.
         GroundFxColor = "Red",
         -- 4.0, not 1.0. ApolloGroundGlow carries Scale = 0.33 in its own
@@ -379,12 +379,12 @@ local settings = {
         -- AxeNovaLight family is baked at scale 3 where ApolloGroundGlow is 0.33,
         -- so the same number lands differently between them.
         GroundFxScale = 3.0,
-        -- Hold one colour instead of cycling. Vanilla ping-pongs teal to magenta
+        -- Hold one color instead of cycling. Vanilla ping-pongs teal to magenta
         -- every second; a playtest called it "back and forth pretty rapidly".
         -- Both diagnostics that lived here are gone. What DiagnosticVanillaGlow
         -- switched on -- attaching vanilla's own animation -- is now simply how
         -- the mod works, and DiagnosticVanillaColors did its job: it proved the
-        -- custom art was at fault rather than the colour values.
+        -- custom art was at fault rather than the color values.
 
         -- 1.6, 2.5, 3.0, 1.8, and now 1.0. The texture is 360x180 px at Scale 1.0
         -- (measured by extracting Fx.pkg with deppth2) and vanilla's own Hecate
@@ -401,7 +401,7 @@ local settings = {
         -- This was built in v1.1.0 and left off for ten rounds on the grounds
         -- that it "reads as a mod" while a ground light looks natural. That
         -- judgement cost a great deal: the arena floor is a painted cyan image
-        -- (F_Boss02.map_text carries no coloured lights at all, and ambient is a
+        -- (F_Boss02.map_text carries no colored lights at all, and ambient is a
         -- near-white 0.911/0.954/1.000), so an additive floor light can only ever
         -- wash toward white there. The outline never touches the floor, so none
         -- of that applies to it -- and it worked on the first test.
@@ -427,17 +427,17 @@ local CONFIG_DESCRIPTIONS = {
 
     Enabled = "Master switch. Off leaves the fight completely vanilla.",
 
-    GroundFx = "Show a coloured glow on the ground under the real Hecate. Colour and size are set separately below.",
-    GroundFxColor = "Colour of the ground glow: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red, White, or None to leave the art its own gold-orange. Red contrasts most strongly with the arena's cyan floor.",
+    GroundFx = "Show a colored glow on the ground under the real Hecate. Color and size are set separately below.",
+    GroundFxColor = "Color of the ground glow: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red, White, or None to leave the art its own gold-orange. Red contrasts most strongly with the arena's cyan floor.",
     GroundFxScale = "Size of the ground glow. 3 is roughly her own footprint.",
 
-    Outline = "Draw a coloured outline around the real Hecate, in addition to the ground glow. Unmistakable, and unaffected by the arena's lighting.",
-    OutlineColor = "Colour of the outline: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Matching it to GroundFxColor keeps the two markers reading as one scheme.",
+    Outline = "Draw a colored outline around the real Hecate, in addition to the ground glow. Unmistakable, and unaffected by the arena's lighting.",
+    OutlineColor = "Color of the outline: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Matching it to GroundFxColor keeps the two markers reading as one scheme.",
     OutlineThickness = "How heavy the outline is, 1 to 10. The game's own elite outlines are 3.",
     OutlineOpacity = "How solid the outline is, 0 to 1. The game's own elite outlines are 0.8.",
 
     CloneVanillaGroundFx = "Whether the CLONES keep vanilla's own ground effects -- their shadowing and the glowing symbols on the floor beneath them. On leaves the fight as the game made it; off darkens them, so only the real Hecate has ground effects.",
-    HecateVanillaGroundFx = "Whether the real Hecate keeps vanilla's own ground effects underneath this mod's glow -- her shadowing and floor symbols. On keeps the game's own look; off isolates the marker, worth trying if a colour reads poorly against vanilla's teal-to-magenta cycle.",
+    HecateVanillaGroundFx = "Whether the real Hecate keeps vanilla's own ground effects underneath this mod's glow -- her shadowing and floor symbols. On keeps the game's own look; off isolates the marker, worth trying if a color reads poorly against vanilla's teal-to-magenta cycle.",
     StripCloneDreamOutline = "Dream Dive only. Vanilla gives the base fight's clones the SAME red outline it gives the real Hecate, so the outline identifies nothing there; this takes it off the clones. No effect outside Dream runs.",
 }
 
@@ -520,11 +520,11 @@ local function saveSetting(key, value)
 end
 
 -- A hand-edited .cfg can hold anything. Resolve to a known preset rather than
--- letting a typo produce a nil colour and an invisible marker.
+-- letting a typo produce a nil color and an invisible marker.
 local function resolveColor(chosen, label)
     local rgb = CONFIG.colors[chosen]
     if rgb == nil then
-        logWarn("unknown " .. label .. " colour " .. tostring(chosen) .. "; falling back to Amber")
+        logWarn("unknown " .. label .. " color " .. tostring(chosen) .. "; falling back to Amber")
         rgb = CONFIG.colors.Amber
     end
     return rgb
@@ -586,20 +586,20 @@ end
 -- =============================================================================
 -- Versions 1.0.0 through 2.7.0 registered custom animations through sjson and
 -- attached those. It never worked, and the failure was narrow and stubborn: the
--- custom light RENDERED but never took its colour, under every condition tried.
+-- custom light RENDERED but never took its color, under every condition tried.
 -- Red, Ember and Amber; brightness 0.5 and 1.0; vanilla's own exact channel
 -- values baked into it; standalone definitions and InheritFrom definitions. All
--- of them produced the same untinted grey-white pool.
+-- of them produced the same untinted gray-white pool.
 --
 -- Two playtests bounded it exactly:
 --
 --   * DiagnosticVanillaGlow attached VANILLA's HecateGroundGlow by name. It
 --     rendered, stacked, and cycled teal to magenta correctly.
 --   * DiagnosticVanillaColors put vanilla's exact numbers into THIS MOD's own
---     registered animation. Grey-white.
+--     registered animation. Gray-white.
 --
 -- Same numbers, different result. So the values were never the problem, and no
--- further colour tuning could have found it.
+-- further color tuning could have found it.
 --
 -- The rewrite therefore uses no custom art at all. Both mechanisms it does use
 -- were confirmed working in a real fight:
@@ -607,11 +607,11 @@ end
 --   1. Removing HecateGroundGlow from the CLONE types in data, so only the real
 --      Hecate is lit. Verified -- the clones went dark.
 --   2. Attaching vanilla's own HecateGroundGlow to her and stacking it.
---      Verified -- eight copies were visibly brighter, in colour.
+--      Verified -- eight copies were visibly brighter, in color.
 --
--- That is the whole marker. The cost is that the colour is vanilla's teal-to-
+-- That is the whole marker. The cost is that the color is vanilla's teal-to-
 -- magenta cycle rather than a free choice, which is the look originally
--- described as "natural, not clearly a mod". Colour is recovered separately, by
+-- described as "natural, not clearly a mod". Color is recovered separately, by
 -- recolouring vanilla's own light entry rather than registering a new one.
 
 -- =============================================================================
@@ -652,24 +652,24 @@ local VANILLA_GLOW = "HecateGroundGlow"
 -- orange": not by tinting a light, but by attaching art that is already orange.
 --
 -- A light ADDS to the floor, and the floor here is a painted cyan image, so any
--- added colour clips toward white. A sprite is drawn ON the floor and carries its
+-- added color clips toward white. A sprite is drawn ON the floor and carries its
 -- own art, so it reads on its own terms. ApolloGroundGlow is literally defined as
 -- Red = 1, Green = 0.6, Blue = 0.
 --
 -- CastCircle is the stronger option and the reason is worth stating: it is a
 -- RING, so it reads by SHAPE. Shape survives a busy, saturated floor in a way no
--- colour does -- and this arena defeated colour for ten rounds.
+-- color does -- and this arena defeated color for ten rounds.
 -- Ground sprites, and only ones that LOOP.
 --
--- v3.7.0 offered the AxeNovaLight_<God> family as a colour palette. That was a
+-- v3.7.0 offered the AxeNovaLight_<God> family as a color palette. That was a
 -- mistake caught by a playtest: those are axe NOVA bursts -- Duration = 1 with no
 -- Loop -- so the marker appeared for a second at the start of the fight and never
--- again. Colour was the wrong thing to select art by; persistence comes first.
+-- again. Color was the wrong thing to select art by; persistence comes first.
 --
 -- ApolloGroundGlow is the one confirmed working, and the reason is right there in
 -- its definition: Loop = true, NumFrames = 15, PlaySpeed = 30. It runs forever.
 --
--- Colour therefore does NOT come from picking different art any more. It comes
+-- Color therefore does NOT come from picking different art any more. It comes
 -- from the Color argument on CreateAnimation, which vanilla passes for SPRITES in
 -- seven places (EventLogic.lua:1676, SpellPresentation.lua:465, 496, 507, 510,
 -- RoomPresentation.lua:2410, UpgradeChoiceLogic.lua:999) as {R, G, B, A} in
@@ -677,7 +677,7 @@ local VANILLA_GLOW = "HecateGroundGlow"
 -- that failed -- lights and sprites are not the same thing here, and conflating
 -- them cost several rounds.
 -- GroundFx is a boolean, parallel to Outline: the art is fixed, and the dials
--- beside it are colour and size just as Outline's are colour, thickness and
+-- beside it are color and size just as Outline's are color, thickness and
 -- opacity. Kept as a table rather than inlined so a second art option, if one is
 -- ever confirmed in a fight, is a one-line addition.
 local GROUND_FX = {
@@ -690,7 +690,7 @@ local GROUND_FX = {
 --
 -- ApolloAoECircleA (a cast ring) was offered here and removed unused. It looked
 -- like a shape-based alternative, but reading its definition it is not a clean
--- equivalent: PingPongColor = true gives it a colour cycle of its own that would
+-- equivalent: PingPongColor = true gives it a color cycle of its own that would
 -- fight GroundFxColor, StartAlpha fades 0.6 to 0.3, and VisualFx spawns a further
 -- effect every ~0.2s for as long as it lives. It is an AoE telegraph, not a
 -- marker. Shipping it untested would have repeated the AxeNovaLight mistake --
@@ -746,7 +746,7 @@ end
 -- real Hecate is the only outlined unit.
 --
 -- This matters more than it looks. There are four outline SetupEvents in
--- EnemyData_Hecate.lua and they are not all the same colour:
+-- EnemyData_Hecate.lua and they are not all the same color:
 --
 --   :175  Hecate       teal  (25,200,160)   -- HERS. Never touched.
 --   :5632 HecateCopy   RED   (230,23,0)     -- identical to her own red
@@ -766,7 +766,7 @@ end
 -- Dream appearance -- taking the whole event would leave them wrongly textured.
 --
 -- Once stripped, vanilla's own red outline on the real Hecate becomes a free
--- marker in Dream mode, with no colour choice needed: the signal is outlined
+-- marker in Dream mode, with no color choice needed: the signal is outlined
 -- versus not outlined, exactly like the ground glow.
 local function stripCloneOutlineData(game)
     local enemyData = game.EnemyData
@@ -820,14 +820,14 @@ local function stripCloneGlowData(game)
 end
 
 -- The ground sprite's tint as {R, G, B, A} in 0-255, or nil to leave the art its
--- own colour. Vanilla passes Color to CreateAnimation for sprites in
+-- own color. Vanilla passes Color to CreateAnimation for sprites in
 -- seven places, and never for a light.
 function CONFIG.resolvedGroundColor()
     local name = settings.values.GroundFxColor
     if name == nil or name == "None" then return nil end
     local rgb = CONFIG.colors[name]
     if rgb == nil then
-        logWarn("unknown ground colour " .. tostring(name) .. "; leaving the art untinted")
+        logWarn("unknown ground color " .. tostring(name) .. "; leaving the art untinted")
         return nil
     end
     local r, g, b = colorTo255(rgb)
@@ -996,7 +996,7 @@ end
 -- costs nothing that was already working.
 --
 -- Everything here writes through saveSetting, so a change lands in the .cfg AND
--- in settings.values immediately. Colour, brightness, scale, texture and
+-- in settings.values immediately. Color, brightness, scale, texture and
 -- stacking are read at attach time, so they take effect at the very next split
 -- with no restart and no file editing.
 --
@@ -1072,14 +1072,14 @@ local function renderWindow()
 
             imgui.Text("Ground marker")
             checkSetting(imgui, "GroundFx", "Show the ground glow")
-            comboSetting(imgui, "GroundFxColor", CONFIG.groundColorOrder, "Ground colour")
+            comboSetting(imgui, "GroundFxColor", CONFIG.groundColorOrder, "Ground color")
             sliderSetting(imgui, "GroundFxScale", "Ground size", 0.1, 12.0)
 
             imgui.Spacing()
             imgui.Separator()
             imgui.Text("Outline")
             checkSetting(imgui, "Outline", "Outline the real Hecate")
-            comboSetting(imgui, "OutlineColor", CONFIG.colorOrder, "Outline colour")
+            comboSetting(imgui, "OutlineColor", CONFIG.colorOrder, "Outline color")
             sliderSetting(imgui, "OutlineThickness", "Thickness", 1, 10, "%.0f")
             sliderSetting(imgui, "OutlineOpacity", "Opacity", 0.0, 1.0)
 
@@ -1219,7 +1219,7 @@ end
 -- Runs on load AND on every hot reload, so it must be safe to repeat. Only
 -- re-reads settings and reports them; it installs nothing.
 --
--- This is what makes tuning cheap. Colour, brightness, scale and stacking are
+-- This is what makes tuning cheap. Color, brightness, scale and stacking are
 -- all resolved at attach time from these values, so editing the .cfg and saving
 -- lands on the very next split with no restart. Pulse shape is the exception --
 -- PingPongScale and Duration are baked into the art at load.

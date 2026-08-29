@@ -179,7 +179,7 @@ function M.install(game, configOpts, configInitial, sjsonOpts, modutilOpts, guiS
 
   if not (sjsonOpts and sjsonOpts.absent) then
     rom.mods["SGG_Modding-SJSON"] = {
-      -- The real to_object serialises ONLY the fields named in `order`.
+      -- The real to_object serializes ONLY the fields named in `order`.
       -- Reproduced faithfully: a field the plugin sets but forgets to list must
       -- disappear here too, or the suite would pass on art the game drops.
       to_object = function(tbl, order)

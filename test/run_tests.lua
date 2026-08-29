@@ -44,7 +44,7 @@ local function logsContain(needle)
 end
 
 -- Resolves the variant the CURRENT settings select, so a test that changes
--- colour or brightness looks at the entry the plugin would actually attach
+-- color or brightness looks at the entry the plugin would actually attach
 -- rather than at the shipped default's entry.
 local function activeLight(plugin)
   local name = at(plugin, "CONFIG") and plugin.CONFIG.glowName() or nil
@@ -86,7 +86,7 @@ end
 
 local EM = { SpawnCount = 2, SpawnedUnit = "HecateCopyEM" }
 local BASE = { SpawnCount = 2, SpawnedUnit = "HecateCopy" }
--- The shipped variant. Colour and brightness are baked into the NAME now, which
+-- The shipped variant. Color and brightness are baked into the NAME now, which
 -- is what makes both of them live -- the plugin picks a pre-registered variant
 -- at attach time instead of rebuilding art it cannot rebuild.
 -- The marker is vanilla's own animation now. No custom art is registered at
@@ -95,9 +95,9 @@ local GLOW = "HecateGroundGlow"
 local VANILLA = "HecateGroundGlow"
 -- The ground sprite the shipped GroundFx setting resolves to. Named once so the
 -- suite keeps testing what actually ships when the default palette entry moves.
--- Back to Apollo's art. The AxeNovaLight family was tried as a colour palette
+-- Back to Apollo's art. The AxeNovaLight family was tried as a color palette
 -- and rejected: those are one-shot novas (Duration = 1, no Loop), so the marker
--- flashed once at the start of the fight and vanished. Colour now comes from the
+-- flashed once at the start of the fight and vanished. Color now comes from the
 -- Color argument instead of from picking different art.
 local SHIPPED_FX = "ApolloGroundGlow"
 
@@ -127,7 +127,7 @@ do
   check("1.10 ships the clones keeping their vanilla glow",
         at(v, "CloneVanillaGroundFx") == true, tostring(at(v, "CloneVanillaGroundFx")))
   -- ON: she keeps vanilla's glow under the red disc. It was off while the mod
-  -- was trying to COLOUR a light and vanilla's cycle drowned it; that stopped
+  -- was trying to COLOR a light and vanilla's cycle drowned it; that stopped
   -- applying once the marker became a sprite. A playtest preferred it on, for
   -- the shadowing and the game's own look.
   check("1.10b ships her keeping vanilla's glow under the marker",
@@ -144,7 +144,7 @@ do
   check("1.11 ships the outline ON", at(v, "Outline") == true, tostring(at(v, "Outline")))
   -- Matched to the ground sprite so the two markers read as one scheme rather
   -- than as red-and-orange.
-  check("1.11b in the same colour as the ground marker",
+  check("1.11b in the same color as the ground marker",
         at(v, "OutlineColor") == at(v, "GroundFxColor"),
         tostring(at(v, "OutlineColor")) .. " vs " .. tostring(at(v, "GroundFxColor")))
   check("1.11c ships the vanilla-light subsystem gone entirely",
@@ -415,7 +415,7 @@ do
   check("10.2b and on no clone", onClone == false)
   -- AddOutline takes 0-255 where the light's sjson takes 0-1. Getting this
   -- backwards would produce a black outline that looks like nothing at all.
-  check("10.3 its colour is converted to 0-255",
+  check("10.3 its color is converted to 0-255",
         at(o, "R") == math.floor(at(cyan, 1) * 255 + 0.5)
         and at(o, "G") == math.floor(at(cyan, 2) * 255 + 0.5),
         "R=" .. tostring(at(o, "R")))
@@ -600,9 +600,9 @@ do
   -- point of tuning from the overlay.
   local G, plugin = boot(nil, { gui = { openCombo = true, click = "Ember##RealHecate_GroundFxColor_Ember" } })
   M.guiCallbacks.window()
-  check("10c.16 picking a colour writes it through",
+  check("10c.16 picking a color writes it through",
         M.store.GroundFxColor == "Ember", tostring(M.store.GroundFxColor))
-  -- Colour is baked into vanilla's light entry at load, so a change from the
+  -- Color is baked into vanilla's light entry at load, so a change from the
   -- panel lands on the NEXT launch, not the next split. The panel says so.
   check("10c.17 and it resolves to a real preset",
         at(at(at(plugin, "CONFIG"), "colors"), "Ember") ~= nil)
@@ -666,7 +666,7 @@ do
   -- The palette is deliberately small. ApolloAoECircleA was offered here and
   -- removed unused: it carries its own PingPongColor cycle that would fight
   -- GroundFxColor, and spawns a VisualFx every ~0.2s. Anything added back must
-  -- be a static-coloured looping sprite, and must be seen in a fight first.
+  -- be a static-colored looping sprite, and must be seen in a fight first.
   local _, plugin = boot()
   check("10f.3 exactly one ground art, so GroundFx can be a boolean",
         plugin.GROUND_FX.ApolloGlow == "ApolloGroundGlow"
@@ -686,7 +686,7 @@ end
 
 do
   -- The setting is live, so the sprite attached before a change must still be
-  -- removed after it -- the same stranding hazard the colour variants had.
+  -- removed after it -- the same stranding hazard the color variants had.
   local G = boot({ GroundFx = true })
   local hecate = G.spawnHecate()
   G.UnitSplit(hecate, EM)
@@ -753,7 +753,7 @@ do
   for _, c in ipairs(G.created) do
     if c.Name == SHIPPED_FX then a = c end
   end
-  check("10f.12 None leaves the art its own colour", at(a, "Color") == nil)
+  check("10f.12 None leaves the art its own color", at(a, "Color") == nil)
 end
 
 -- =============================================================================
