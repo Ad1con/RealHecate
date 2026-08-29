@@ -1070,6 +1070,31 @@ do
 end
 
 do
+  -- Development files must never reach a user. thunderstore.toml names what to
+  -- COPY rather than what to skip, so anything unnamed is already excluded --
+  -- this asserts nobody later adds a rule that drags them in. Verified against a
+  -- real built artifact: the package is 7 files and none of these are among them.
+  -- Reads the source = "..." values only. A first version substring-searched
+  -- the whole file and failed on its own comments, which mention guard.sh and
+  -- test by name -- the same way the CHANGELOG test matched its own prose.
+  local toml = readFile("../thunderstore.toml") or ""
+  local sources = {}
+  for src in toml:gmatch('source%s*=%s*"([^"]+)"') do
+    sources[#sources + 1] = src
+  end
+  check("12.10 the build copies exactly three things", #sources == 3,
+        table.concat(sources, ", "))
+
+  local allowed = { ["./CHANGELOG.md"] = true, ["./LICENSE"] = true, ["./src"] = true }
+  local unexpected = {}
+  for _, src in ipairs(sources) do
+    if not allowed[src] then unexpected[#unexpected + 1] = src end
+  end
+  check("12.11 and nothing beyond CHANGELOG, LICENSE and src",
+        #unexpected == 0, table.concat(unexpected, ", "))
+end
+
+do
   -- Files the build references by path. A typo here fails the release rather
   -- than the test suite, which is a much slower way to find out.
   for _, f in ipairs({ "../icon.png", "../README.md", "../CHANGELOG.md",
