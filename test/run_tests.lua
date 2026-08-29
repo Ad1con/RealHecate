@@ -127,8 +127,16 @@ do
   -- Apollo glow marks her positively, so the fight stays closer to vanilla.
   check("1.10 ships the clones keeping their vanilla glow",
         at(v, "CloneGroundGlow") == true, tostring(at(v, "CloneGroundGlow")))
-  check("1.10b ships hers stripped, so only the mod's light is under her",
-        at(v, "HecateVanillaGlow") == false, tostring(at(v, "HecateVanillaGlow")))
+  -- ON: she keeps vanilla's glow under the red disc. It was off while the mod
+  -- was trying to COLOUR a light and vanilla's cycle drowned it; that stopped
+  -- applying once the marker became a sprite. A playtest preferred it on, for
+  -- the shadowing and the game's own look.
+  check("1.10b ships her keeping vanilla's glow under the marker",
+        at(v, "HecateVanillaGlow") == true, tostring(at(v, "HecateVanillaGlow")))
+  -- With both glow settings on, the data strip has nothing to do and never
+  -- touches EnemyData at all.
+  check("1.10d so no glow strip runs by default",
+        at(v, "CloneGroundGlow") == true and at(v, "HecateVanillaGlow") == true)
   check("1.10c ships stripping the clones' Dream outline",
         at(v, "StripCloneDreamOutline") == true)
   -- The outline is the PRIMARY marker as of v3.4.0. It was off for ten rounds
@@ -949,7 +957,9 @@ do
   -- The clone-glow edit reaches into game data at load. If EnemyData is not
   -- shaped the way this expects, that must cost the strip and nothing else.
   local G = dofile(HARNESS)
-  M.install(G, nil, nil, nil)
+  -- A glow strip pinned on, so the code path that reads EnemyData actually runs.
+  -- With the shipped defaults both glows stay, so nothing reads it.
+  M.install(G, nil, { CloneGroundGlow = false }, nil)
   G.EnemyData = nil
   local plugin = dofile(PLUGIN)
   if M.pendingGameLoad then M.pendingGameLoad() end

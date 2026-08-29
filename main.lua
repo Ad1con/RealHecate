@@ -1,5 +1,5 @@
 -- =============================================================================
--- RealHecate (v5.0.0) -- marks the real Hecate during her Triple Divide.
+-- RealHecate (v5.1.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
@@ -313,10 +313,22 @@ local settings = {
         --
         -- Note this plugin previously had a test asserting her own glow was
         -- "left alone", treating that as correct. It was the bug.
-        -- OFF: vanilla's glow comes off the real Hecate, so the only light under
-        -- her is this mod's red one. With it on she carries both, and vanilla's
-        -- teal-to-magenta cycle fights the marker's colour.
-        HecateVanillaGlow = false,
+        -- ON: she keeps vanilla's own ground glow as well as the mod's red disc.
+        --
+        -- This was off through development for a good reason at the time -- while
+        -- the mod was trying to COLOUR a light, vanilla's teal-to-magenta cycle
+        -- sat on top of it and drowned the colour, which cost several rounds of
+        -- "the colour is not changing" when it was changing all along.
+        --
+        -- That stopped applying once the marker became a sprite rather than a
+        -- light: the red disc renders on its own terms and does not compete for
+        -- the same channels. A playtest with both on preferred it, since vanilla's
+        -- glow adds shadowing and keeps the ground under her looking like the
+        -- game's own art rather than a flat disc.
+        --
+        -- Off is still worth keeping: if a future colour reads poorly against
+        -- vanilla's cycle, this is the switch that isolates the marker.
+        HecateVanillaGlow = true,
         -- Dream Dive only. See stripCloneOutlineData: without this, the base
         -- fight's clones carry the SAME red outline the real Hecate does, so the
         -- outline identifies nothing there.
@@ -409,7 +421,7 @@ local CONFIG_DESCRIPTIONS = {
     GroundFxScale = "Size of the ground art. RESTART REQUIRED.",
     StripCloneDreamOutline = "Dream Dive only: take vanilla's outline off the clones, so the real Hecate is the only outlined one. Without it the base fight's clones share her exact red outline. No effect outside Dream runs. RESTART REQUIRED.",
     CloneGroundGlow = "Whether the CLONES keep vanilla's own ground glow. On leaves the fight closer to vanilla; off darkens them so the real Hecate is the only lit one. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    HecateVanillaGlow = "Whether the real Hecate keeps vanilla's own ground glow, on top of this mod's. Off is recommended: vanilla's cycles teal to magenta and fights the marker's colour. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
+    HecateVanillaGlow = "Whether the real Hecate keeps vanilla's own ground glow underneath this mod's red disc. On keeps the shadowing and the game's own look; off isolates the marker, which is worth trying if a colour reads poorly against vanilla's teal-to-magenta cycle. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
 
     Outline = "Fallback if the ground light still is not enough: draw a coloured outline around the real Hecate. Unmistakable, but it looks like a mod. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
     OutlineColor = "Colour of the outline. One of: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Matching it to GroundFxColor keeps the two markers reading as one scheme. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
