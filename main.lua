@@ -1,5 +1,5 @@
 -- =============================================================================
--- RealHecate (v5.1.1) -- marks the real Hecate during her Triple Divide.
+-- RealHecate (v5.2.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
@@ -258,6 +258,14 @@ CONFIG.colors = {
 CONFIG.colorOrder = { "Amber", "Ember", "Violet", "Gold", "Teal",
                       "Cyan", "Green", "Magenta", "Red", "White" }
 
+-- The ground glow additionally accepts None, meaning "leave the art its own
+-- gold-orange". resolvedGroundColor has always honoured that; the dropdown did
+-- not offer it, so it was reachable from the .cfg and not from the panel.
+CONFIG.groundColorOrder = { "None" }
+for _, name in ipairs(CONFIG.colorOrder) do
+    CONFIG.groundColorOrder[#CONFIG.groundColorOrder + 1] = name
+end
+
 local settings = {
     values = {
         Enabled = true,
@@ -413,34 +421,45 @@ local settings = {
 }
 
 local CONFIG_DESCRIPTIONS = {
+    -- Every setting here is read at load, so a change to this file applies at
+    -- the next launch. The overlay panel applies immediately, but needs a mouse.
+    -- Rather than repeat that on all twelve, it is stated once at the top of the
+    -- generated file via the section names.
+
     Enabled = "Master switch. Off leaves the fight completely vanilla.",
     KeepAfterClonesGone = "Leave the marker on for the rest of the fight instead of removing it when the clones die.",
 
-    GroundFx = "Ground art under the real Hecate: None or ApolloGlow. Colour and size are set separately by GroundFxColor and GroundFxScale. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    GroundFxColor = "Tint for the ground art. One of: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Red gives the strongest contrast against this arena's cyan floor; None leaves Apollo's own gold-orange. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    GroundFxScale = "Size of the ground art. RESTART REQUIRED.",
-    StripCloneDreamOutline = "Dream Dive only: take vanilla's outline off the clones, so the real Hecate is the only outlined one. Without it the base fight's clones share her exact red outline. No effect outside Dream runs. RESTART REQUIRED.",
-    CloneGroundGlow = "Whether the CLONES keep vanilla's own ground glow. On leaves the fight closer to vanilla; off darkens them so the real Hecate is the only lit one. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    HecateVanillaGlow = "Whether the real Hecate keeps vanilla's own ground glow underneath this mod's red disc. On keeps the shadowing and the game's own look; off isolates the marker, which is worth trying if a colour reads poorly against vanilla's teal-to-magenta cycle. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
+    GroundFx = "Ground art under the real Hecate: None, or ApolloGlow for a soft glow. Colour and size are set separately below.",
+    GroundFxColor = "Colour of the ground glow: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red, White, or None to leave the art its own gold-orange. Red contrasts most strongly with the arena's cyan floor.",
+    GroundFxScale = "Size of the ground glow. 3 is roughly her own footprint.",
 
-    Outline = "Fallback if the ground light still is not enough: draw a coloured outline around the real Hecate. Unmistakable, but it looks like a mod. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    OutlineColor = "Colour of the outline. One of: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Matching it to GroundFxColor keeps the two markers reading as one scheme. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    OutlineThickness = "How heavy the outline is, 1 to 10. The game's own elite outlines are 3. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
-    OutlineOpacity = "0 to 1. The game's own elite outlines are 0.8. RESTART REQUIRED (or change it from the overlay panel, which needs a mouse).",
+    Outline = "Draw a coloured outline around the real Hecate, in addition to the ground glow. Unmistakable, and unaffected by the arena's lighting.",
+    OutlineColor = "Colour of the outline: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red or White. Matching it to GroundFxColor keeps the two markers reading as one scheme.",
+    OutlineThickness = "How heavy the outline is, 1 to 10. The game's own elite outlines are 3.",
+    OutlineOpacity = "How solid the outline is, 0 to 1. The game's own elite outlines are 0.8.",
+
+    CloneGroundGlow = "Whether the CLONES keep vanilla's own ground glow. On leaves the fight as the game made it; off darkens them, so the real Hecate is the only lit one.",
+    HecateVanillaGlow = "Whether the real Hecate keeps vanilla's own ground glow underneath this mod's. On keeps the shadowing and the game's own look; off isolates the marker, worth trying if a colour reads poorly against vanilla's teal-to-magenta cycle.",
+    StripCloneDreamOutline = "Dream Dive only. Vanilla gives the base fight's clones the SAME red outline it gives the real Hecate, so the outline identifies nothing there; this takes it off the clones. No effect outside Dream runs.",
 }
 
+
+-- Section headings in the generated .cfg. They group the twelve settings and
+-- carry the "applies at next launch" note once, rather than repeating it on
+-- every description.
 local function sectionFor(key)
-    -- Only the three that are baked into the animation data at load. `Light` is
-    -- not among them: it gates whether the marker is ATTACHED, which is read at
-    -- the next split like every other behaviour setting.
-    if key == "Color" or key == "Scale" then
-        return "Ground light appearance (restart required)"
+    if key == "GroundFx" or key == "GroundFxColor" or key == "GroundFxScale" then
+        return "Ground glow (applies at next launch)"
     end
     if key == "Outline" or key == "OutlineColor"
         or key == "OutlineThickness" or key == "OutlineOpacity" then
-        return "Outline (live)"
+        return "Outline (applies at next launch)"
     end
-    return "Behaviour"
+    if key == "CloneGroundGlow" or key == "HecateVanillaGlow"
+        or key == "StripCloneDreamOutline" then
+        return "Vanilla effects (applies at next launch)"
+    end
+    return "General (applies at next launch)"
 end
 
 -- These are the primitives Chalk itself is built on: bind a key with a default,
@@ -1052,7 +1071,7 @@ local function renderWindow()
 
             imgui.Text("Ground marker")
             comboSetting(imgui, "GroundFx", GROUND_FX_ORDER, "Ground art")
-            comboSetting(imgui, "GroundFxColor", CONFIG.colorOrder, "Ground colour")
+            comboSetting(imgui, "GroundFxColor", CONFIG.groundColorOrder, "Ground colour")
             sliderSetting(imgui, "GroundFxScale", "Ground size", 0.1, 12.0)
 
             imgui.Spacing()

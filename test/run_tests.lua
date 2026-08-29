@@ -945,6 +945,37 @@ do
         and outlineEventCount(G, "Hecate") == 1)
 end
 
+do
+  -- GroundFxColor accepts None, meaning "leave the art its own gold-orange".
+  -- resolvedGroundColor always honoured it; the dropdown did not offer it, so it
+  -- was reachable from the .cfg and not from the panel.
+  local _, plugin = boot()
+  local has = false
+  for _, n2 in ipairs(plugin.CONFIG.groundColorOrder) do
+    if n2 == "None" then has = true end
+  end
+  check("10f.13 the ground colour dropdown offers None", has)
+  check("10f.14 and every other preset too",
+        #plugin.CONFIG.groundColorOrder == #plugin.CONFIG.colorOrder + 1,
+        tostring(#plugin.CONFIG.groundColorOrder))
+end
+
+do
+  -- Every description must name a setting that exists, and every setting must
+  -- have one -- otherwise the generated .cfg has an entry with no explanation.
+  local _, plugin = boot()
+  local values = at(at(plugin, "settings"), "values")
+  local missing = {}
+  for key in pairs(values) do
+    if M.bound[key] == nil or M.bound[key].description == "" then
+      missing[#missing + 1] = key
+    end
+  end
+  table.sort(missing)
+  check("10f.15 every setting has a description in the .cfg",
+        #missing == 0, table.concat(missing, ", "))
+end
+
 -- =============================================================================
 -- 11. Nothing here may break the fight
 -- =============================================================================
