@@ -1055,6 +1055,21 @@ do
 end
 
 do
+  -- The changelog rotation action looks for the literal string "[Unreleased]"
+  -- and fails the build without it. A bare "## Unreleased" heading failed the
+  -- first dry run, so the brackets are load-bearing.
+  -- Matches the HEADING, not the phrase. A first version of this searched the
+  -- whole file for "[Unreleased]" and passed even with the heading broken,
+  -- because the prose above it mentions the string.
+  -- Matches the HEADING. A first version searched the whole file for
+  -- "[Unreleased]" and passed with the heading broken, because the prose above
+  -- it mentions the string in backticks. "##" only ever precedes the heading.
+  local cl = readFile("../CHANGELOG.md") or ""
+  check("12.9 CHANGELOG has an ## [Unreleased] heading, brackets included",
+        cl:match("##%s*%[Unreleased%]") ~= nil)
+end
+
+do
   -- Files the build references by path. A typo here fails the release rather
   -- than the test suite, which is a much slower way to find out.
   for _, f in ipairs({ "../icon.png", "../README.md", "../CHANGELOG.md",

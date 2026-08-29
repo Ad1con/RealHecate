@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The release workflow folds the `[Unreleased]` section into the tagged
+version, so the square brackets are load-bearing -- the action looks for
+`[Unreleased]` exactly and fails the build without it.
 
-## 5.3.0
+## [Unreleased]
+
+## [5.3.0] - 2026-08-29
 
 First public release.
 
