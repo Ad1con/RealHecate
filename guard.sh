@@ -3,8 +3,9 @@
 #
 # The plugin folder in r2modman is a JUNCTION to src/, so every write THERE is a
 # write to the running game's mod. Files outside src/ -- tests, docs, .git -- are
-# no longer inside the watched folder, which is why the layout was split. ReLoad picks it up within seconds and
-# re-runs the plugin chunk.
+# no longer inside the watched folder, which is why the layout was split.
+#
+# The loader picks up a change within seconds and re-runs the plugin chunk.
 #
 # On 2026-08-28 that crashed a live fight: four reloads in ninety seconds, the
 # last three seconds before an EXCEPTION_ACCESS_VIOLATION inside Lua's garbage
