@@ -1,5 +1,5 @@
 -- =============================================================================
--- RealHecate (v5.1.0) -- marks the real Hecate during her Triple Divide.
+-- RealHecate (v5.1.1) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and

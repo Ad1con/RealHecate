@@ -797,6 +797,55 @@ do
 end
 
 -- =============================================================================
+-- 9b. The glow strip targets exactly what was asked for
+-- =============================================================================
+-- Both glows ship ON, so the strip never runs at defaults and any bug inside it
+-- is invisible there. These exercise it with one glow off each way. Sabotaging
+-- glowStripTargets passed the whole suite before these existed.
+local function spawnGlowCount(G, objectId)
+  local n = 0
+  for _, a in ipairs(G.created) do
+    if a.Name == VANILLA and a.DestinationId == objectId and a.Scale == nil then n = n + 1 end
+  end
+  return n
+end
+
+do
+  local G = boot({ CloneGroundGlow = false })
+  local hecate = G.spawnHecate()
+  G.UnitSplit(hecate, EM)
+  local lit = 0
+  for id in pairs(hecate.SplitIds) do lit = lit + spawnGlowCount(G, id) end
+  check("9b.1 clones off: the clones are stripped", lit == 0, tostring(lit))
+  check("9b.2 and SHE is not, because hers is still on",
+        spawnGlowCount(G, hecate.ObjectId) == 1,
+        tostring(spawnGlowCount(G, hecate.ObjectId)))
+end
+
+do
+  local G = boot({ HecateVanillaGlow = false })
+  local hecate = G.spawnHecate()
+  G.UnitSplit(hecate, EM)
+  check("9b.3 hers off: she is stripped",
+        spawnGlowCount(G, hecate.ObjectId) == 0,
+        tostring(spawnGlowCount(G, hecate.ObjectId)))
+  local lit = 0
+  for id in pairs(hecate.SplitIds) do lit = lit + spawnGlowCount(G, id) end
+  check("9b.4 and the CLONES are not, because theirs is still on",
+        lit == 2, tostring(lit))
+end
+
+do
+  local G = boot()
+  local hecate = G.spawnHecate()
+  G.UnitSplit(hecate, EM)
+  local lit = 0
+  for id in pairs(hecate.SplitIds) do lit = lit + spawnGlowCount(G, id) end
+  check("9b.5 defaults strip nobody", lit == 2 and spawnGlowCount(G, hecate.ObjectId) == 1,
+        "clones=" .. tostring(lit) .. " her=" .. tostring(spawnGlowCount(G, hecate.ObjectId)))
+end
+
+-- =============================================================================
 -- 10g. The Dream Dive clone outline
 -- =============================================================================
 -- In a Dream run the base fight's clones carry the SAME red outline the real
