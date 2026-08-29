@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Refuse to modify the live plugin while Hades II is running.
 #
-# The plugin folder in r2modman is a JUNCTION to this one, so every write here is
-# a write to the running game's mod. ReLoad picks it up within seconds and
+# The plugin folder in r2modman is a JUNCTION to src/, so every write THERE is a
+# write to the running game's mod. Files outside src/ -- tests, docs, .git -- are
+# no longer inside the watched folder, which is why the layout was split. ReLoad picks it up within seconds and
 # re-runs the plugin chunk.
 #
 # On 2026-08-28 that crashed a live fight: four reloads in ninety seconds, the

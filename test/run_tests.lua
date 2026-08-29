@@ -5,7 +5,7 @@
 -- Both interpreters, always. The game ships LuaJIT and the two differ in ways
 -- that have bitten this codebase before.
 
-local PLUGIN = "../main.lua"
+local PLUGIN = "../src/main.lua"
 local HARNESS = "./harness.lua"
 local M = dofile("./mocks.lua")
 
