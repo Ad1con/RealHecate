@@ -27,17 +27,17 @@ exit, so changes made while it is running are discarded.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `Enabled` | `true` | Master switch. Off is fully vanilla. |
-| `GroundFx` | `true` | Show the red glow on the ground. |
+| `Enabled` | `true` | Master switch. Set to `false` for vanilla. |
+| `GroundFx` | `true` | Show the glow on the ground. |
 | `GroundFxColor` | `Red` | Color of the ground glow. |
 | `GroundFxScale` | `3` | Size of the ground glow. |
-| `Outline` | `true` | Outline her silhouette. |
+| `Outline` | `true` | Outline Hecate's silhouette. |
 | `OutlineColor` | `Red` | Color of the outline. |
 | `OutlineThickness` | `6` | 1–10. The game's own elite outlines are `3`. |
 | `OutlineOpacity` | `1.0` | 0–1. The game's own are `0.8`. |
-| `CloneVanillaGroundFx` | `true` | Whether the **clones** keep vanilla's ground effects — their shadowing and the glowing symbols on the floor. Off darkens them, so only the real Hecate has ground effects. |
-| `HecateVanillaGroundFx` | `true` | Whether **she** keeps vanilla's ground effects under the red glow. Off isolates the marker. |
-| `StripCloneDreamOutline` | `true` | Dream Dive only. Takes vanilla's outline off the clones so the real Hecate is the only outlined one. No effect outside Dream runs. |
+| `CloneVanillaGroundFx` | `true` | Whether the **clones** keep vanilla ground effects including their shadowing and the glowing symbols on the floor. |
+| `HecateVanillaGroundFx` | `true` | Whether **Hecate** keeps vanilla ground effects underneath the added glow. |
+| `StripCloneDreamOutline` | `true` | Dream Dive only. Takes vanilla outline off the clones so the real Hecate is the only one outlined. No effect outside Dream runs. |
 
 **Colors** for `GroundFxColor` and `OutlineColor`:
 `Amber` `Ember` `Violet` `Gold` `Teal` `Cyan` `Green` `Magenta` `Red` `White`
@@ -46,8 +46,6 @@ Red is the default because it is roughly the complement of the arena's cyan
 floor, which is the strongest contrast available there.
 
 ## How it knows which one is real
-
-Not by health, behavior, or position — the game already knows.
 
 Every split in the fight goes through one function, `UnitSplit`. It is called on
 the real Hecate's own enemy table and records the clones it creates as
@@ -69,23 +67,6 @@ Modifies no game files. It edits `EnemyData` tables in memory, attaches art that
 already ships with the game, and wraps exactly one function (`UnitSplit`).
 
 Nothing is written to your save.
-
-## Development
-
-```bash
-cd test && lua run_tests.lua
-```
-
-127 tests, run on both `lua` (5.4) and `luajit` (2.1) — the game ships LuaJIT.
-
-```bash
-winget install DEVCOM.Lua
-winget install LuaJIT.LuaJIT
-```
-
-`guard.sh` refuses edits while Hades II is running. The plugin folder in
-r2modman is a junction to `src/`, so every save there is a live edit to the
-running game, and hot-reloading mid-fight has crashed it.
 
 ## Credits
 

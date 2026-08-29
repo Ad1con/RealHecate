@@ -1002,6 +1002,68 @@ do
 end
 
 -- =============================================================================
+-- 12. Packaging -- the files that ship
+-- =============================================================================
+-- The release workflow rewrites versionNumber in thunderstore.toml from the tag
+-- and never touches src/manifest.json, so the two drift silently. This makes
+-- that a red test rather than a wrong version on the mod page.
+local function readFile(path)
+  local f = io.open(path, "r")
+  if f == nil then return nil end
+  local t = f:read("*a"); f:close(); return t
+end
+
+do
+  local toml = readFile("../thunderstore.toml")
+  local mf = readFile("../src/manifest.json")
+  check("12.1 thunderstore.toml exists", toml ~= nil)
+  check("12.2 src/manifest.json exists", mf ~= nil)
+
+  local tv = toml and toml:match('versionNumber%s*=%s*"([^"]+)"') or nil
+  local mv = mf and mf:match('"version_number"%s*:%s*"([^"]+)"') or nil
+  check("12.3 both declare a version", tv ~= nil and mv ~= nil,
+        tostring(tv) .. " / " .. tostring(mv))
+  check("12.4 and the versions agree", tv == mv,
+        "toml=" .. tostring(tv) .. " manifest=" .. tostring(mv))
+
+  -- Namespace and name are what the package is published under. Getting either
+  -- wrong publishes to the wrong place, and namespace cannot be changed after.
+  check("12.5 namespace matches the manifest",
+        toml and toml:match('namespace%s*=%s*"([^"]+)"') == "Adicon")
+  check("12.6 name matches the manifest",
+        toml and toml:match('\nname%s*=%s*"([^"]+)"') == "RealHecate")
+end
+
+do
+  -- Dependencies are declared twice, in two different formats. A mismatch means
+  -- the Thunderstore page lists different requirements than the loader enforces.
+  local toml = readFile("../thunderstore.toml") or ""
+  local mf = readFile("../src/manifest.json") or ""
+  local tomlDeps = {}
+  for name, ver in toml:gmatch('\n([%w_]+%-[%w_]+)%s*=%s*"([%d%.]+)"') do
+    tomlDeps[name] = ver
+  end
+  local missing = {}
+  for full in mf:gmatch('"([%w_]+%-[%w_]+%-[%d%.]+)"') do
+    local name, ver = full:match("^(.-)%-([%d%.]+)$")
+    if name and tomlDeps[name] ~= ver then
+      missing[#missing + 1] = full .. " vs " .. tostring(tomlDeps[name])
+    end
+  end
+  check("12.7 every manifest dependency matches the toml",
+        #missing == 0, table.concat(missing, ", "))
+end
+
+do
+  -- Files the build references by path. A typo here fails the release rather
+  -- than the test suite, which is a much slower way to find out.
+  for _, f in ipairs({ "../icon.png", "../README.md", "../CHANGELOG.md",
+                       "../LICENSE", "../src/main.lua" }) do
+    check("12.8 build input exists: " .. f, readFile(f) ~= nil)
+  end
+end
+
+-- =============================================================================
 
 print(("RealHecate: %d passed, %d failed"):format(passed, failed))
 for _, f in ipairs(failures) do print("  FAIL  " .. f) end
