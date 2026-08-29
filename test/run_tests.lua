@@ -114,11 +114,10 @@ do
   local v = at(at(plugin, "settings"), "values")
 
   check("1.1 ships enabled", at(v, "Enabled") == true, tostring(at(v, "Enabled")))
-  check("1.4 ships removing the marker with the clones", at(v, "KeepAfterClonesGone") == false)
   -- OFF as of v4.0.0. The Apollo ground sprite replaced it, and a playtest
   -- compared them directly and preferred without the dark pool underneath.
-  check("1.5b ships the Apollo ground sprite as the ground marker",
-        at(v, "GroundFx") == "ApolloGlow", tostring(at(v, "GroundFx")))
+  check("1.5b ships the ground glow on", at(v, "GroundFx") == true,
+        tostring(at(v, "GroundFx")))
   check("1.5c tinted red", at(v, "GroundFxColor") == "Red", tostring(at(v, "GroundFxColor")))
   -- Ember, not Amber: Amber's middle channel clips at the shipped stacking and
   -- washes to pale yellow-white. That cost a playtest.
@@ -126,17 +125,17 @@ do
   -- absence, needed only while nothing else rendered on that floor. The red
   -- Apollo glow marks her positively, so the fight stays closer to vanilla.
   check("1.10 ships the clones keeping their vanilla glow",
-        at(v, "CloneGroundGlow") == true, tostring(at(v, "CloneGroundGlow")))
+        at(v, "CloneVanillaGroundFx") == true, tostring(at(v, "CloneVanillaGroundFx")))
   -- ON: she keeps vanilla's glow under the red disc. It was off while the mod
   -- was trying to COLOUR a light and vanilla's cycle drowned it; that stopped
   -- applying once the marker became a sprite. A playtest preferred it on, for
   -- the shadowing and the game's own look.
   check("1.10b ships her keeping vanilla's glow under the marker",
-        at(v, "HecateVanillaGlow") == true, tostring(at(v, "HecateVanillaGlow")))
+        at(v, "HecateVanillaGroundFx") == true, tostring(at(v, "HecateVanillaGroundFx")))
   -- With both glow settings on, the data strip has nothing to do and never
   -- touches EnemyData at all.
   check("1.10d so no glow strip runs by default",
-        at(v, "CloneGroundGlow") == true and at(v, "HecateVanillaGlow") == true)
+        at(v, "CloneVanillaGroundFx") == true and at(v, "HecateVanillaGroundFx") == true)
   check("1.10c ships stripping the clones' Dream outline",
         at(v, "StripCloneDreamOutline") == true)
   -- The outline is the PRIMARY marker as of v3.4.0. It was off for ten rounds
@@ -259,10 +258,10 @@ end
 -- 6. Repeat splits -- she splits at every phase change
 -- =============================================================================
 do
-  -- CloneGroundGlow pinned OFF: this section measures that the strip runs on
+  -- CloneVanillaGroundFx pinned OFF: this section measures that the strip runs on
   -- EVERY split, and the strip only runs when it is switched on. It ships on --
   -- clones keep their glow -- so the default would make this test vacuous.
-  local G = boot({ CloneGroundGlow = false })
+  local G = boot({ CloneVanillaGroundFx = false })
   local hecate = G.spawnHecate()
 
   G.UnitSplit(hecate, EM)
@@ -386,22 +385,6 @@ do
   end
   check("7.8 and does not stop an animation on a dead unit", stoppedOnHer == 0,
         tostring(stoppedOnHer))
-end
-
--- =============================================================================
--- 8. KeepAfterClonesGone
--- =============================================================================
-do
-  local G = boot({ KeepAfterClonesGone = true })
-  local hecate = G.spawnHecate()
-  G.UnitSplit(hecate, EM)
-  check("8.1 it marks her", G.anyMarkerCount(hecate.ObjectId) > 0)
-
-  G.killClones(hecate)
-  G.tick(3)
-  check("8.2 the marker stays after the clones die",
-        G.anyMarkerCount(hecate.ObjectId) > 0,
-        "attached=" .. tostring(G.anyMarkerCount(hecate.ObjectId)))
 end
 
 -- =============================================================================
@@ -685,14 +668,15 @@ do
   -- GroundFxColor, and spawns a VisualFx every ~0.2s. Anything added back must
   -- be a static-coloured looping sprite, and must be seen in a fight first.
   local _, plugin = boot()
-  check("10f.3 the palette offers only what has been confirmed in game",
-        #plugin.GROUND_FX_ORDER == 2, tostring(#plugin.GROUND_FX_ORDER))
+  check("10f.3 exactly one ground art, so GroundFx can be a boolean",
+        plugin.GROUND_FX.ApolloGlow == "ApolloGroundGlow"
+        and next(plugin.GROUND_FX, next(plugin.GROUND_FX)) == nil)
   check("10f.4 and ApolloAoECircleA is not among it",
         plugin.GROUND_FX.CastCircle == nil)
 end
 
 do
-  local G = boot({ GroundFx = "None" })
+  local G = boot({ GroundFx = false })
   local hecate = G.spawnHecate()
   G.UnitSplit(hecate, EM)
   check("10f.5 None attaches no ground art at all",
@@ -703,7 +687,7 @@ end
 do
   -- The setting is live, so the sprite attached before a change must still be
   -- removed after it -- the same stranding hazard the colour variants had.
-  local G = boot({ GroundFx = "ApolloGlow" })
+  local G = boot({ GroundFx = true })
   local hecate = G.spawnHecate()
   G.UnitSplit(hecate, EM)
   M.store.GroundFx = "CastCircle"
@@ -729,30 +713,6 @@ do
 end
 
 do
-  -- Every palette entry must name art that exists and attach cleanly. A typo in
-  -- this table would silently attach nothing, which is the exact shape of the
-  -- v1.0.0 failure -- a call that looks right and draws nothing.
-  local _, plugin = boot()
-  local bad = {}
-  for _, key in ipairs(plugin.GROUND_FX_ORDER) do
-    local G2 = dofile(HARNESS)
-    M.install(G2, nil, { GroundFx = key }, nil, {}, nil)
-    dofile(PLUGIN)
-    if M.pendingGameLoad then M.pendingGameLoad() end
-    local h = G2.spawnHecate()
-    G2.UnitSplit(h, EM)
-    local attached = 0
-    for _, c in ipairs(G2.created) do
-      if c.Scale ~= nil and c.Name ~= VANILLA then attached = attached + 1 end
-    end
-    local expected = (key == "None") and 0 or 1
-    if attached ~= expected then bad[#bad + 1] = key .. "=" .. attached end
-  end
-  check("10f.8 every ground palette entry attaches exactly one sprite",
-        #bad == 0, table.concat(bad, ", "))
-end
-
-do
   -- Every ground sprite offered must LOOP, or it flashes once and is gone. That
   -- is not checkable from Lua, so it is pinned as an explicit allow-list here:
   -- both entries were read out of the animation data and carry Loop = true.
@@ -762,7 +722,7 @@ do
   for key, name in pairs(plugin.GROUND_FX) do
     if name ~= nil and not looping[name] then bad[#bad + 1] = key .. "/" .. name end
   end
-  check("10f.9 every offered ground sprite is a looping animation",
+  check("10f.9 every ground sprite the mod can attach is a looping animation",
         #bad == 0, table.concat(bad, ", "))
 end
 
@@ -811,7 +771,7 @@ local function spawnGlowCount(G, objectId)
 end
 
 do
-  local G = boot({ CloneGroundGlow = false })
+  local G = boot({ CloneVanillaGroundFx = false })
   local hecate = G.spawnHecate()
   G.UnitSplit(hecate, EM)
   local lit = 0
@@ -823,7 +783,7 @@ do
 end
 
 do
-  local G = boot({ HecateVanillaGlow = false })
+  local G = boot({ HecateVanillaGroundFx = false })
   local hecate = G.spawnHecate()
   G.UnitSplit(hecate, EM)
   check("9b.3 hers off: she is stripped",
@@ -946,21 +906,6 @@ do
 end
 
 do
-  -- GroundFxColor accepts None, meaning "leave the art its own gold-orange".
-  -- resolvedGroundColor always honoured it; the dropdown did not offer it, so it
-  -- was reachable from the .cfg and not from the panel.
-  local _, plugin = boot()
-  local has = false
-  for _, n2 in ipairs(plugin.CONFIG.groundColorOrder) do
-    if n2 == "None" then has = true end
-  end
-  check("10f.13 the ground colour dropdown offers None", has)
-  check("10f.14 and every other preset too",
-        #plugin.CONFIG.groundColorOrder == #plugin.CONFIG.colorOrder + 1,
-        tostring(#plugin.CONFIG.groundColorOrder))
-end
-
-do
   -- Every description must name a setting that exists, and every setting must
   -- have one -- otherwise the generated .cfg has an entry with no explanation.
   local _, plugin = boot()
@@ -1039,7 +984,7 @@ do
   local G = dofile(HARNESS)
   -- A glow strip pinned on, so the code path that reads EnemyData actually runs.
   -- With the shipped defaults both glows stay, so nothing reads it.
-  M.install(G, nil, { CloneGroundGlow = false }, nil)
+  M.install(G, nil, { CloneVanillaGroundFx = false }, nil)
   G.EnemyData = nil
   local plugin = dofile(PLUGIN)
   if M.pendingGameLoad then M.pendingGameLoad() end

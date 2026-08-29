@@ -1,5 +1,5 @@
 -- =============================================================================
--- RealHecate (v5.2.0) -- marks the real Hecate during her Triple Divide.
+-- RealHecate (v5.3.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a coloured light on the ground under
 -- the real one. The two others are clones. The light appears when she splits and
@@ -269,7 +269,6 @@ end
 local settings = {
     values = {
         Enabled = true,
-        KeepAfterClonesGone = false,
 
         -- OFF as of v4.0.0. This is the vanilla HecateGroundLight pool -- the
         -- dark inverted one. It existed because for a long time nothing else
@@ -307,7 +306,7 @@ local settings = {
         --
         -- Named for what it IS rather than what the mod does to it: "on" means
         -- the clones are lit, which is what a reader expects.
-        CloneGroundGlow = true,
+        CloneVanillaGroundFx = true,
         -- Take vanilla's glow off the REAL Hecate too, so this mod's light is
         -- the only one under her.
         --
@@ -336,7 +335,7 @@ local settings = {
         --
         -- Off is still worth keeping: if a future colour reads poorly against
         -- vanilla's cycle, this is the switch that isolates the marker.
-        HecateVanillaGlow = true,
+        HecateVanillaGroundFx = true,
         -- Dream Dive only. See stripCloneOutlineData: without this, the base
         -- fight's clones carry the SAME red outline the real Hecate does, so the
         -- outline identifies nothing there.
@@ -365,7 +364,7 @@ local settings = {
         -- darken or brighten, and LightStacking is then how DARK the pool goes.
         -- None, ApolloGlow (vanilla's orange ground glow) or CastCircle (a ring,
         -- which reads by shape rather than colour). See GROUND_FX.
-        GroundFx = "ApolloGlow",
+        GroundFx = true,
         -- Tints the ground sprite. "None" leaves Apollo's own gold-orange.
         -- Everything else is one of the colour presets, passed as CreateAnimation's
         -- Color argument -- which is how vanilla tints sprites.
@@ -427,9 +426,8 @@ local CONFIG_DESCRIPTIONS = {
     -- generated file via the section names.
 
     Enabled = "Master switch. Off leaves the fight completely vanilla.",
-    KeepAfterClonesGone = "Leave the marker on for the rest of the fight instead of removing it when the clones die.",
 
-    GroundFx = "Ground art under the real Hecate: None, or ApolloGlow for a soft glow. Colour and size are set separately below.",
+    GroundFx = "Show a coloured glow on the ground under the real Hecate. Colour and size are set separately below.",
     GroundFxColor = "Colour of the ground glow: Amber, Ember, Violet, Gold, Teal, Cyan, Green, Magenta, Red, White, or None to leave the art its own gold-orange. Red contrasts most strongly with the arena's cyan floor.",
     GroundFxScale = "Size of the ground glow. 3 is roughly her own footprint.",
 
@@ -438,8 +436,8 @@ local CONFIG_DESCRIPTIONS = {
     OutlineThickness = "How heavy the outline is, 1 to 10. The game's own elite outlines are 3.",
     OutlineOpacity = "How solid the outline is, 0 to 1. The game's own elite outlines are 0.8.",
 
-    CloneGroundGlow = "Whether the CLONES keep vanilla's own ground glow. On leaves the fight as the game made it; off darkens them, so the real Hecate is the only lit one.",
-    HecateVanillaGlow = "Whether the real Hecate keeps vanilla's own ground glow underneath this mod's. On keeps the shadowing and the game's own look; off isolates the marker, worth trying if a colour reads poorly against vanilla's teal-to-magenta cycle.",
+    CloneVanillaGroundFx = "Whether the CLONES keep vanilla's own ground effects -- their shadowing and the glowing symbols on the floor beneath them. On leaves the fight as the game made it; off darkens them, so only the real Hecate has ground effects.",
+    HecateVanillaGroundFx = "Whether the real Hecate keeps vanilla's own ground effects underneath this mod's glow -- her shadowing and floor symbols. On keeps the game's own look; off isolates the marker, worth trying if a colour reads poorly against vanilla's teal-to-magenta cycle.",
     StripCloneDreamOutline = "Dream Dive only. Vanilla gives the base fight's clones the SAME red outline it gives the real Hecate, so the outline identifies nothing there; this takes it off the clones. No effect outside Dream runs.",
 }
 
@@ -455,9 +453,9 @@ local function sectionFor(key)
         or key == "OutlineThickness" or key == "OutlineOpacity" then
         return "Outline (applies at next launch)"
     end
-    if key == "CloneGroundGlow" or key == "HecateVanillaGlow"
+    if key == "CloneVanillaGroundFx" or key == "HecateVanillaGroundFx"
         or key == "StripCloneDreamOutline" then
-        return "Vanilla effects (applies at next launch)"
+        return "Vanilla ground effects (applies at next launch)"
     end
     return "General (applies at next launch)"
 end
@@ -678,8 +676,11 @@ local VANILLA_GLOW = "HecateGroundGlow"
 -- 0-255. That is a documented runtime path for sprites, unlike the light tinting
 -- that failed -- lights and sprites are not the same thing here, and conflating
 -- them cost several rounds.
+-- GroundFx is a boolean, parallel to Outline: the art is fixed, and the dials
+-- beside it are colour and size just as Outline's are colour, thickness and
+-- opacity. Kept as a table rather than inlined so a second art option, if one is
+-- ever confirmed in a fight, is a one-line addition.
 local GROUND_FX = {
-    None       = nil,
     -- Loop = true, 15 frames. The one confirmed working in a real fight.
     ApolloGlow = "ApolloGroundGlow",
 }
@@ -694,7 +695,6 @@ local GROUND_FX = {
 -- effect every ~0.2s for as long as it lives. It is an AoE telegraph, not a
 -- marker. Shipping it untested would have repeated the AxeNovaLight mistake --
 -- art chosen by reading one property and ignoring the rest.
-local GROUND_FX_ORDER = { "None", "ApolloGlow" }
 
 -- unit.CreateAnimations is consumed engine-side at spawn -- no Lua reads it, so
 -- there is no hook point and no way to stop the clones' glow from being made in
@@ -732,11 +732,11 @@ local GROUND_FX_ORDER = { "None", "ApolloGlow" }
 -- "true" meant the clones were dark.
 local function glowStripTargets()
     local targets = {}
-    if not settings.values.CloneGroundGlow then
+    if not settings.values.CloneVanillaGroundFx then
         targets[#targets + 1] = CLONE_BASE
         targets[#targets + 1] = CLONE_EM
     end
-    if not settings.values.HecateVanillaGlow then
+    if not settings.values.HecateVanillaGroundFx then
         targets[#targets + 1] = "Hecate"
     end
     return targets
@@ -836,8 +836,8 @@ end
 
 
 local function attachMarker(game, hecate)
-    local groundFx = GROUND_FX[settings.values.GroundFx]
-    if groundFx ~= nil then
+    if settings.values.GroundFx then
+        local groundFx = GROUND_FX.ApolloGlow
         -- A sprite, not a light. Vanilla passes Scale on 113 CreateAnimation
         -- calls, so that argument is precedented; nothing else is added.
         -- Color is {R, G, B, A} in 0-255 (ColorData.lua), NOT the 0-1 the
@@ -885,7 +885,7 @@ local function detachMarker(game, hecate)
     if not hecate[MARKED_FIELD] then return end
 
     -- One name, because there is only one animation now. This also takes her own
-    -- base glow if HecateVanillaGlow is on, which is why that setting defaults
+    -- base glow if HecateVanillaGroundFx is on, which is why that setting defaults
     -- on: with it on she has no base glow and the marker is unambiguous.
     game.StopAnimation({
         Name = VANILLA_GLOW,
@@ -977,7 +977,9 @@ local function markRealHecate(game, hecate, aiData)
                 tostring(settings.values.GroundFx), tostring(settings.values.GroundFxColor),
                 settings.values.Outline and "on" or "off"))
 
-    if settings.values.KeepAfterClonesGone then return end
+    -- The watcher always runs now. KeepAfterClonesGone used to skip it and leave
+    -- the marker up for the rest of the fight, but outside a split there is only
+    -- one Hecate, so a marker there disambiguates nothing and is only noise.
     game.thread(watchClones, game, hecate, generation)
 end
 
@@ -1065,12 +1067,11 @@ local function renderWindow()
             imgui.Separator()
 
             checkSetting(imgui, "Enabled", "Enabled")
-            checkSetting(imgui, "KeepAfterClonesGone", "Keep marker after clones die")
             imgui.Spacing()
             imgui.Separator()
 
             imgui.Text("Ground marker")
-            comboSetting(imgui, "GroundFx", GROUND_FX_ORDER, "Ground art")
+            checkSetting(imgui, "GroundFx", "Show the ground glow")
             comboSetting(imgui, "GroundFxColor", CONFIG.groundColorOrder, "Ground colour")
             sliderSetting(imgui, "GroundFxScale", "Ground size", 0.1, 12.0)
 
@@ -1085,8 +1086,8 @@ local function renderWindow()
             imgui.Spacing()
             imgui.Separator()
             imgui.Text("Clones")
-            checkSetting(imgui, "CloneGroundGlow", "Clones keep their glow" .. RESTART_ONLY)
-            checkSetting(imgui, "HecateVanillaGlow", "She keeps her vanilla glow" .. RESTART_ONLY)
+            checkSetting(imgui, "CloneVanillaGroundFx", "Clones keep their ground FX" .. RESTART_ONLY)
+            checkSetting(imgui, "HecateVanillaGroundFx", "She keeps her ground FX" .. RESTART_ONLY)
             checkSetting(imgui, "StripCloneDreamOutline", "Strip clone Dream outline" .. RESTART_ONLY)
 
             imgui.Spacing()
@@ -1193,7 +1194,7 @@ local function on_ready(game)
     end
 
     if settings.values.Enabled
-        and (not settings.values.CloneGroundGlow or not settings.values.HecateVanillaGlow) then
+        and (not settings.values.CloneVanillaGroundFx or not settings.values.HecateVanillaGroundFx) then
         local ok, result = pcall(stripCloneGlowData, game)
         if ok then
             stripped = result
@@ -1227,7 +1228,7 @@ local function on_reload()
     logAlways(("settings reloaded; ground %s/%s at scale %.2f, clone glow %s, outline %s")
         :format(tostring(settings.values.GroundFx), tostring(settings.values.GroundFxColor),
                 clamp(settings.values.GroundFxScale, 0.1, 12.0, 3.0),
-                settings.values.CloneGroundGlow and "left" or "stripped",
+                settings.values.CloneVanillaGroundFx and "left" or "stripped",
                 settings.values.Outline and "on" or "off"))
 end
 
@@ -1273,5 +1274,4 @@ return {
     saveSetting = saveSetting,
     POLL_INTERVAL = POLL_INTERVAL,
     GROUND_FX = GROUND_FX,
-    GROUND_FX_ORDER = GROUND_FX_ORDER,
 }

@@ -42,16 +42,15 @@ so changes made while it's running are discarded.
 | Setting | Default | What it does |
 |---|---|---|
 | `Enabled` | `true` | Master switch. Off is fully vanilla. |
-| `KeepAfterClonesGone` | `false` | Leave the marker on for the rest of the fight instead of removing it with the clones. |
-| `GroundFx` | `ApolloGlow` | Ground art: `None` or `ApolloGlow`. |
+| `GroundFx` | `true` | Show the red glow on the ground. |
 | `GroundFxColor` | `Red` | Colour of the ground glow. |
 | `GroundFxScale` | `3` | Size of the ground glow. |
 | `Outline` | `true` | Outline her silhouette. |
 | `OutlineColor` | `Red` | Colour of the outline. |
 | `OutlineThickness` | `6` | 1–10. The game's own elite outlines are `3`. |
 | `OutlineOpacity` | `1.0` | 0–1. The game's own are `0.8`. |
-| `CloneGroundGlow` | `true` | Whether the **clones** keep vanilla's ground glow. Off darkens them, so she's the only lit one. |
-| `HecateVanillaGlow` | `true` | Whether **she** keeps vanilla's ground glow under the red one. Off isolates the marker. |
+| `CloneVanillaGroundFx` | `true` | Whether the **clones** keep vanilla's ground effects — their shadowing and floor symbols. Off darkens them, so only she has ground effects. |
+| `HecateVanillaGroundFx` | `true` | Whether **she** keeps vanilla's ground effects under the red glow. Off isolates the marker. |
 | `StripCloneDreamOutline` | `true` | Dream Dive only — see above. |
 
 **Colours** for `GroundFxColor` and `OutlineColor`:
@@ -91,7 +90,7 @@ Nothing is written to your save.
 cd test && lua run_tests.lua
 ```
 
-133 tests, run on both `lua` (5.4) and `luajit` (2.1) — the game ships LuaJIT.
+127 tests, run on both `lua` (5.4) and `luajit` (2.1) — the game ships LuaJIT.
 
 ```bash
 winget install DEVCOM.Lua
