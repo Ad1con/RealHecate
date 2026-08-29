@@ -7,14 +7,12 @@ version, so the square brackets are load-bearing -- the action looks for
 
 ## [Unreleased]
 
-## [5.3.0] - 2026-08-29
-
 First public release.
 
-Marks the real Hecate during her Triple Divide with a red ground glow and a red
-outline, so she can be told from her two clones.
+Marks the real Hecate during her Triple Divide with a red glow on the ground and
+a red outline, so she can be told from her two clones.
 
-- Works in the ordinary fight, in Extreme Measures / Rivals, and in Dream Dive.
+- Works in the ordinary fight, in the Rivals fight, and in Dream Dives.
 - Adds only. The clones keep their own effects and so does Hecate; every removal
   is opt-in.
 - Dream Dive fix: vanilla gives the base fight's clones the *same red outline* as

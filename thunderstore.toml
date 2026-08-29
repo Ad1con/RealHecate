@@ -5,7 +5,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "Adicon"
 name = "RealHecate"
-versionNumber = "5.3.0"
+versionNumber = "1.0.0"
 description = "Marks the real Hecate when she splits into three, so you can tell her from the clones."
 websiteUrl = "https://github.com/Ad1con/RealHecate"
 containsNsfwContent = false
