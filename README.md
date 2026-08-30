@@ -8,12 +8,10 @@ change their colors.
 
 Works in the ordinary fight, in the Rivals fight, and in Dream Dives. Hecate and
 her clones already have red outlines during Dream Dives, so the clones' outlines
-are removed there and only the real Hecate keeps one.
+are removed and only the real Hecate has an outline.
 
-The mod uses only in-game assets and changes no fight or gameplay behavior — it
-is purely cosmetic. It does make the fight easier, since telling the clones apart
-is normally part of it.
-
+The mod uses only in-game assets and changes no fight or gameplay behavior. It
+is purely cosmetic. Telling the clones apart is normally part of the fight so this mod will make the fight easier. I hope the mod will also be useful for accessibility purposes.
 
 ---
 
@@ -44,7 +42,7 @@ exit, so changes made while it is running are discarded.
 `Amber` `Ember` `Violet` `Gold` `Teal` `Cyan` `Green` `Magenta` `Red` `White`
 
 Red is the default because it is roughly the complement of the arena's cyan
-floor, which is the strongest contrast available there.
+floor and is the strongest contrast available for that environment.
 
 ## How it knows which one is real
 
@@ -77,3 +75,7 @@ cropped in-game portrait.
 
 Built on [ReturnOfModding / Hell2Modding](https://github.com/SGG-Modding), with
 `SGG_Modding-ModUtil` and `SGG_Modding-ReLoad`.
+
+Thank you to the Hades Modding community! 
+
+Built by Adicon, with Claude.
