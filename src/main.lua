@@ -2,171 +2,36 @@
 -- RealHecate (v1.0.0) -- marks the real Hecate during her Triple Divide.
 -- =============================================================================
 -- When Hecate splits into three, this puts a colored light on the ground under
--- the real one. The two others are clones. The light appears when she splits and
--- goes away when the clones do, so the rest of the fight is untouched.
+-- the real one, and by default a colored outline around her too. The clones
+-- get neither. The marker appears when she splits and goes away when the
+-- clones do, so the rest of the fight is untouched. It exists as a practice
+-- and accessibility tool, and ships on rather than behind a switch. See
+-- DESIGN.md (repo root, not shipped) for the identification proof, the
+-- ground-light-vs-outline tradeoff, and the tuning history behind every
+-- default below.
 --
--- This deliberately removes an ambiguity the fight is built around. It exists as
--- a practice and accessibility tool. The mod's name says what it does, so it
--- ships on rather than behind a switch.
+-- Two facts, verified against the shipped scripts, force the shape of this
+-- file:
 --
--- -----------------------------------------------------------------------------
--- HOW THE REAL ONE IS IDENTIFIED
--- -----------------------------------------------------------------------------
+--   * Every split -- ordinary fight and Extreme Measures alike -- routes
+--     through one function, UnitSplit (EnemyAILogic.lua:5139), called on the
+--     real Hecate's own enemy table. Her ObjectId never changes for the whole
+--     fight, checked against every mechanic that could plausibly reassign her
+--     (see DESIGN.md) -- so one wrap here, keyed off that call, is enough;
+--     there is no re-detection logic anywhere.
+--   * Both the real Hecate and her clones carry vanilla's own
+--     HecateGroundGlow (EnemyData_Hecate.lua:21 and :5564). That is why
+--     stripping it from the clone types in data (glowStripTargets) makes hers
+--     the only lit floor for free, and why attaching it to her again N times
+--     is additive brightness rather than new art.
 --
--- Every split in the fight goes through one function, UnitSplit
--- (EnemyAILogic.lua:5139). It is called on the real Hecate's own enemy table and
--- spawns N new units:
---
---     enemy.SplitIds = {}                                  -- :5152
---     newEnemy.ObjectId = SpawnUnit({ ... })               -- :5168
---     enemy.SplitIds[newEnemy.ObjectId] = true             -- :5169
---
--- So after any split the real Hecate is the `enemy` the function was called on,
--- her ObjectId is unchanged, and the clones' ObjectIds are exactly the keys of
--- enemy.SplitIds. Nothing has to be inferred from health, behavior or position.
---
--- Crucially, THE REAL ONE NEVER CHANGES for the whole fight. Checked against
--- every mechanic that could plausibly reassign her:
---
---   * UnitSplit only ever assigns new ObjectIds to newly spawned units. The
---     table it is called on is never re-identified. It does reset SplitIds each
---     time (:5152), so repeat splits start clean rather than accumulating.
---   * Both stage transitions Teleport her by her existing ObjectId
---     (EnemyAILogic.lua:6306 and :6328), so phase changes move her, not swap her.
---   * HecatePolymorph applies to the Hero, not to Hecate (EffectLogic.lua:277-280).
---   * HecateDarkSide only swaps her weapon list (EffectLogic.lua:1191-1199).
---   * The clone wipes at the phase interludes are type-scoped --
---     WipeEnemyTypes = { "HecateCopy", "HecateCopyEM" } (EnemyData_Hecate.lua:327
---     and :374) -- so they can never take the real one.
---
--- That is why this plugin has no re-detection logic and no per-split bookkeeping
--- beyond a generation counter. Mark the unit UnitSplit was called on, and it is
--- still the right unit three splits later.
---
--- -----------------------------------------------------------------------------
--- WHICH SPLITS EXIST
--- -----------------------------------------------------------------------------
---
--- She splits in the ordinary fight as well as in Extreme Measures. All of these
--- funnel into UnitSplit, which is why one wrap covers them:
---
---   Ordinary fight -- HecateSplit1/2/3 (WeaponData_Hecate.lua:1154, 1245, 1259),
---     FireFunctionName = "UnitSplit", SpawnedUnit = "HecateCopy". Equipped in
---     phase 1 (EnemyData_Hecate.lua:268), phase 2 (:362) and phase 3 (:410).
---
---   Extreme Measures -- SpawnHecateClones (PresentationBiomeF.lua:63) as a room
---     function gated to encounter BossHecate02 (RoomDataF.lua:2447), then
---     HecateEMSplit (WeaponData_Hecate.lua:1278) forced on entering phase 2
---     (EnemyData_Hecate.lua:344) and phase 3 (:391). SpawnedUnit = "HecateCopyEM".
---
--- HecateComboBreakerSplit is NOT a split despite the name. It never calls
--- UnitSplit; it teleports clones that already exist (EnemyAILogic.lua:5196-5211).
--- Nothing here needs to handle it.
---
--- The two scope settings below are keyed off aiData.SpawnedUnit rather than off
--- a difficulty check. That is the one fact the wrap can read directly and be
--- sure of, instead of inferring the fight variant from equipped weapon lists.
---
--- -----------------------------------------------------------------------------
--- WHY A GROUND LIGHT RATHER THAN AN OUTLINE
--- -----------------------------------------------------------------------------
---
--- The game already puts a light on the ground under Hecate. Both the real one
--- (EnemyData_Hecate.lua:21) and the clones (:5564) carry
--- CreateAnimations = { "HecateGroundGlow" }, and that animation
--- (Enemy_Erebus_VFX.sjson:2950) is nothing but an invisible sprite whose job is
--- to hold a light:
---
---     Name = "HecateGroundGlow"
---     FilePath = "Dev\blank_invisible"
---     Light = "HecateGroundLight"          -- a Lights\DiffuseSpotlight
---     DieWithOwner = true
---     GroupName = "FX_Terrain"
---
--- This plugin registers its own copy of that pair in a distinct color and
--- attaches it to the real Hecate. It is the same mechanism the game uses in the
--- same role, so it follows her through every teleport and cleans itself up on
--- her death without any code here.
---
--- The cost is that art is baked in at load: the light's color and size settings
--- below are RESTART-ONLY.
---
--- -----------------------------------------------------------------------------
--- WHY NOTHING RENDERED UNTIL v1.2.0 -- read this before changing CreateAnimation
--- -----------------------------------------------------------------------------
---
--- v1.0.0 and v1.1.0 both logged complete success and both drew NOTHING. Two
--- playtests, no errors, the right unit identified every time. The cause was one
--- argument:
---
---     CreateAnimation({ Name = ..., DestinationId = ..., Group = "FX_Terrain" })
---
--- "FX_Terrain" was copied out of the animation definition's GroupName field. As a
--- CreateAnimation argument, Group is a RENDER GROUP -- a different namespace --
--- and FX_Terrain is never passed as one anywhere in the game. It appears as a
--- Group only on SpawnObstacle calls (HubPresentation.lua:179, RoomLogic.lua:4879).
--- The light was being filed into a group that does not draw.
---
--- The game's own call for exactly these animations passes NEITHER a Group nor
--- anything else (RoomLogic.lua:3381-3387):
---
---     CreateAnimation({ Name = animName, DestinationId = unit.ObjectId })
---
--- Match that exactly. The general lesson is the one this project keeps charging
--- for: a field name that appears in the data is not automatically a valid
--- argument to the function that consumes the data, and adding a plausible extra
--- argument is a change, not a clarification.
---
--- Note also what failed here: every log line said the plugin was working, because
--- the plugin genuinely did everything it meant to. Success logging proves a call
--- was made, never that the engine honored it.
---
--- -----------------------------------------------------------------------------
--- MAKING IT READ
--- -----------------------------------------------------------------------------
---
--- Separately from the render bug, the light has to compete. It is not dim in
--- isolation -- it is that ALL THREE OF THEM HAVE ONE. Vanilla gives
--- HecateGroundGlow to the real Hecate (EnemyData_Hecate.lua:21) and to every
--- clone (:5564), so an unmodified extra light is one glow among four.
---
--- Two levers, both of which keep the natural look:
---
---   1. STACKING. Attaching the same glow N times is additive, so N copies read
---      as one light at N times the brightness with identical character. Because
---      that is N CreateAnimation calls rather than baked art, it also makes
---      brightness LIVE -- no restart, unlike Scale and Color.
---
---   2. TAKING THE GLOW OFF THE CLONES, in data at load -- see stripCloneGlowData
---      for why the v1.1.0 runtime version was the wrong shape. Hers becomes the
---      only lit floor on the field. This is contrast by subtraction: nothing
---      artificial is added, and it is arguably the most honest form of this mod,
---      since the game already distinguishes units by ground light and this only
---      makes that distinction exclusive.
---
--- An outline is still available (Outline, default OFF) as a fallback if the light
--- route is not enough. It is the game's own mechanism for marking a unit special
--- -- it is what elites get (CombatPresentation.lua:1223, EnemyAILogic.lua:5183) --
--- and it traces her silhouette rather than the floor, so it does not compete with
--- the arena's lighting at all. It is off by default because it plainly reads as a
--- mod in a way the ground light does not.
---
--- The elite BADGE system was considered and does not fit: it attaches to a
--- floating health bar (CombatPresentation.lua:115-130). Hecate is a boss with a
--- top-of-screen bar and the clones carry HideHealthBar, so there is no anchor.
---
--- Two notes on the outline for whoever tunes it:
---
---   * It needs no sjson, so color, thickness and opacity are LIVE.
---   * AddOutline takes 0-255 channels, where the light's sjson takes 0-1. Easy
---     to get backwards; colorTo255 exists so it is only written once.
---
--- One known interaction: in a Dream run vanilla outlines the real Hecate red
--- (PresentationBiomeF.lua:33-36). Ours replaces it while the marker is up, and
--- restoreVanillaOutline puts it back on removal rather than leaving her bare.
--- The teal outline vanilla gives EM copies (EnemyData_Hecate.lua:5738-5748) is on
--- the clones and is untouched -- which is fine, since a marker only the real one
--- lacks would be a signal too.
+-- GUARD, read before touching CreateAnimation: a field name that appears in
+-- game data is not automatically a valid argument to the function consuming
+-- it. Passing Group = "FX_Terrain" here (copied from the animation's own
+-- GroupName field) silently filed the light into a render group that never
+-- draws, and every version through v1.1.0 logged success while drawing
+-- nothing. The game's own call for this animation passes neither Group nor
+-- anything else (RoomLogic.lua:3381-3387) -- match that exactly.
 -- =============================================================================
 
 local mods = rom.mods
@@ -225,23 +90,14 @@ end
 
 local CONFIG = {}
 
--- Color presets, as 0-1 channels. The comment on each is its perceived
--- brightness under 0.2R + 0.7G + 0.07B -- additive light is only as bright as
--- the channels it adds, so a saturated red reads dim on the ground however
--- strong the number looks.
--- The second number on each line is the CHANNEL GAP: top channel minus middle
--- channel. It predicts how well a color survives being driven hard, which
--- matters more here than luminance does.
---
--- Additive light clips per channel at 1.0. Once the top TWO channels are both
--- clipped, the light is white no matter what color was asked for. A color
--- whose middle channel sits well below its top one therefore keeps its hue at
--- intensities where a balanced color has already washed out.
---
--- That is exactly what a playtest found: Gold (1.00, 0.78) has a gap of only
--- 0.22, so at five stacked copies both red and green pinned to 1.0 and it read
--- as "mostly white". Amber has a gap of 0.55 and stays orange well past the
--- point where Gold gives up.
+-- Color presets, as 0-1 channels. The trailing number on each is the CHANNEL
+-- GAP (top channel minus middle) -- it predicts how well a color survives
+-- being driven hard by stacking, which matters more here than luminance:
+-- additive light clips per channel at 1.0, so once the top two channels are
+-- both clipped the light is white regardless of what color was asked for. A
+-- playtest found Gold's narrow 0.22 gap read as "mostly white" at five
+-- stacked copies, where Amber's 0.55 gap stayed orange well past that. See
+-- DESIGN.md for the full reasoning.
 CONFIG.colors = {
     Amber   = { 1.00, 0.45, 0.08 }, -- gap 0.55 -- holds hue hottest; torch-like
     Ember   = { 1.00, 0.30, 0.05 }, -- gap 0.70 -- deepest, most orange
@@ -270,146 +126,44 @@ local settings = {
     values = {
         Enabled = true,
 
-        -- OFF as of v4.0.0. This is the vanilla HecateGroundLight pool -- the
-        -- dark inverted one. It existed because for a long time nothing else
-        -- rendered on that painted-cyan floor, and darkening was the only thing
-        -- the arena could not wash out.
-        --
-        -- The Apollo ground sprite made it redundant: that renders in whatever
-        -- color is asked for, so a dark pool underneath a colored one only
-        -- muddies it. A playtest compared the two directly and preferred without.
-        --
-        -- Invert, Recolour, SteadyColor, Color, Scale and LightStacking all still
-        -- apply to THIS light, so turning it back on restores exactly the look
-        -- that was tested rather than some untested combination.
-        -- Additive: N stacked copies read as one light at N times the brightness,
-        -- with the same character. This is the brightness dial, and unlike Color
-        -- and Scale it is live. Confirmed working in a playtest once the render
-        -- bug was fixed, so raising it is a known-good lever rather than a guess.
-        -- Down from 4. With a nearly-flat falloff, each extra copy widens the
-        -- apparent pool as well as brightening it.
-        -- Multiplies the color channels before stacking. Together these two set
-        -- the peak: LightStacking x Brightness x channel. Above about 2.0 on the
-        -- top channel the light starts washing to white -- see CONFIG.colors.
-
-        -- Take vanilla's own ground glow off the two clones, so hers is the only
-        -- lit floor. The single biggest readability win available, and it adds
-        -- nothing artificial -- see the header.
-        -- ON: the clones keep vanilla's own ground glow, as they do unmodded.
-        --
-        -- This shipped as RemoveCloneGlow = true for most of development, when
-        -- stripping the clones was the ONLY thing that made the real Hecate
-        -- identifiable -- contrast by absence, because nothing else rendered on
-        -- that floor. The red Apollo glow now marks her positively, so taking
-        -- effects away from the clones is no longer paying for itself, and
-        -- leaving the fight closer to vanilla is worth more.
-        --
-        -- Named for what it IS rather than what the mod does to it: "on" means
-        -- the clones are lit, which is what a reader expects.
+        -- Take vanilla's own ground glow off the two clones, so hers is the
+        -- only lit floor -- the single biggest readability win available, and
+        -- it adds nothing artificial (see DESIGN.md). Named for what it IS
+        -- rather than what the mod does to it: "on" means the clones are lit,
+        -- which is what a reader expects.
         CloneVanillaGroundFx = true,
         -- Take vanilla's glow off the REAL Hecate too, so this mod's light is
-        -- the only one under her.
-        --
-        -- Without this she carries both. Vanilla's runs at scale 1.33 against
-        -- this mod's 1.0, so it spreads wider and rings the marker -- and it
-        -- ping-pongs teal (0, 1, 0.7) to magenta (1, 0, 1) on a one second loop.
-        -- A playtest described exactly that: "blue white on the outside but a
-        -- light orangish on the inside". Three earlier rounds of "the color is
-        -- not changing" were the same thing: the color WAS changing, in a core
-        -- that vanilla's larger, color-cycling pool was drowning.
-        --
-        -- Note this plugin previously had a test asserting her own glow was
-        -- "left alone", treating that as correct. It was the bug.
-        -- ON: she keeps vanilla's own ground glow as well as the mod's red disc.
-        --
-        -- This was off through development for a good reason at the time -- while
-        -- the mod was trying to COLOR a light, vanilla's teal-to-magenta cycle
-        -- sat on top of it and drowned the color, which cost several rounds of
-        -- "the color is not changing" when it was changing all along.
-        --
-        -- That stopped applying once the marker became a sprite rather than a
-        -- light: the red disc renders on its own terms and does not compete for
-        -- the same channels. A playtest with both on preferred it, since vanilla's
-        -- glow adds shadowing and keeps the ground under her looking like the
-        -- game's own art rather than a flat disc.
-        --
-        -- Off is still worth keeping: if a future color reads poorly against
-        -- vanilla's cycle, this is the switch that isolates the marker.
+        -- the only one under her. Off is still worth keeping: if a future
+        -- color reads poorly against vanilla's own teal-to-magenta cycle,
+        -- this is the switch that isolates the marker -- see DESIGN.md for
+        -- why it defaults on instead.
         HecateVanillaGroundFx = true,
         -- Dream Dive only. See stripCloneOutlineData: without this, the base
         -- fight's clones carry the SAME red outline the real Hecate does, so the
         -- outline identifies nothing there.
         StripCloneDreamOutline = true,
-        -- Ember, not Amber: at the shipped 3 copies Amber reaches (3.00, 1.35,
-        -- 0.24) and its middle channel clips, washing to pale yellow-white. Ember
-        -- peaks at (3.00, 0.90, 0.15) and holds its color.
-        -- Recolour vanilla's OWN HecateGroundLight entry rather than register
-        -- a new animation. See recolourVanillaLight for why that distinction is
-        -- the whole story.
-        -- Darken instead of brighten.
-        --
-        -- Additive light can only ADD. Her arena floor is already saturated with
-        -- cyan, so an orange light on it produces cyan PLUS orange, which clips
-        -- toward white. That is why every color tried has read as blue-silver,
-        -- and why more stacking made it whiter rather than more orange. It is
-        -- arithmetic, not a bug, and no color tuning can beat it.
-        --
-        -- Inverting sidesteps the fight entirely. DiffuseSpotlightInverse is the
-        -- same 360x180 ellipse with its center at 42 instead of 213 (measured by
-        -- extracting Fx.pkg with deppth2), so it darkens the floor under her.
-        -- Nothing in the scene can add its way over a subtraction.
-        -- ON. Confirmed working in a playtest: a dark navy pool under exactly
-        -- one of the three. Note this pairs with Light -- Light controls whether
-        -- copies are attached at all, Invert controls whether those copies
-        -- darken or brighten, and LightStacking is then how DARK the pool goes.
-        -- None, ApolloGlow (vanilla's orange ground glow) or CastCircle (a ring,
+        -- A light ADDS to the floor, and the arena floor is already saturated
+        -- cyan, so no color tuning beats the arithmetic (see DESIGN.md) --
+        -- which is why this is a ground SPRITE, not a tinted light. None,
+        -- ApolloGlow (vanilla's orange ground glow) or CastCircle (a ring,
         -- which reads by shape rather than color). See GROUND_FX.
         GroundFx = true,
         -- Tints the ground sprite. "None" leaves Apollo's own gold-orange.
         -- Everything else is one of the color presets, passed as CreateAnimation's
         -- Color argument -- which is how vanilla tints sprites.
         GroundFxColor = "Red",
-        -- 4.0, not 1.0. ApolloGroundGlow carries Scale = 0.33 in its own
-        -- definition, so it starts small; a playtest at 1.0 called the ring
-        -- "pretty small". The ceiling is 12 rather than 5 because it is not
-        -- established whether CreateAnimation's Scale multiplies the baked value
-        -- or replaces it -- if it multiplies, 0.33 x 5 was never going to be
-        -- enough, and headroom costs nothing.
-        -- 3.0. A playtest at 4.0 called the pool slightly too large. Note the
-        -- AxeNovaLight family is baked at scale 3 where ApolloGroundGlow is 0.33,
-        -- so the same number lands differently between them.
+        -- ApolloGroundGlow carries Scale = 0.33 in its own definition, so it
+        -- starts small. Shipped at 3.0 after a playtest called 1.0 too small
+        -- and 4.0 slightly too large; see DESIGN.md for the 12-ceiling reason.
         GroundFxScale = 3.0,
-        -- Hold one color instead of cycling. Vanilla ping-pongs teal to magenta
-        -- every second; a playtest called it "back and forth pretty rapidly".
-        -- Both diagnostics that lived here are gone. What DiagnosticVanillaGlow
-        -- switched on -- attaching vanilla's own animation -- is now simply how
-        -- the mod works, and DiagnosticVanillaColors did its job: it proved the
-        -- custom art was at fault rather than the color values.
-
-        -- 1.6, 2.5, 3.0, 1.8, and now 1.0. The texture is 360x180 px at Scale 1.0
-        -- (measured by extracting Fx.pkg with deppth2) and vanilla's own Hecate
-        -- light runs 1.33, so 1.0 is a pool about her own footprint. Every larger
-        -- value read as area lighting rather than a marker on her.
-
-        -- How far the size breath swings, as a fraction. 0.18 in v1.3.0 was
-        -- reported as barely noticeable -- partly because a clipped white pool
-        -- hides a size change, partly because 0.18 is simply small.
-
-
-        -- ON, and the primary marker as of v3.4.0.
-        --
-        -- This was built in v1.1.0 and left off for ten rounds on the grounds
-        -- that it "reads as a mod" while a ground light looks natural. That
-        -- judgement cost a great deal: the arena floor is a painted cyan image
-        -- (F_Boss02.map_text carries no colored lights at all, and ambient is a
-        -- near-white 0.911/0.954/1.000), so an additive floor light can only ever
-        -- wash toward white there. The outline never touches the floor, so none
-        -- of that applies to it -- and it worked on the first test.
+        -- Primary marker as of v3.4.0 -- an outline never touches the floor,
+        -- so unlike a light it does not compete with the arena's own painted-
+        -- cyan lighting. See DESIGN.md for why it was off for ten versions
+        -- first, and for the ground-light-vs-outline tradeoff generally.
         Outline = true,
-        -- Ember is orange, which is the COMPLEMENT of the arena's cyan. That is
-        -- the maximum-contrast choice against this particular floor, and it is
-        -- why the outline reads as hard as it does.
-        -- Matched to the ground sprite, so the two markers read as one scheme.
+        -- Red is the COMPLEMENT of the arena's cyan -- the maximum-contrast
+        -- choice against this floor, matched to the ground sprite's own
+        -- default so the two markers read as one scheme.
         OutlineColor = "Red",
         OutlineThickness = 6,
         OutlineOpacity = 1.0,
@@ -563,19 +317,12 @@ function CONFIG.resolvedOutline(objectId)
     }
 end
 
--- Clamped rather than trusted: a zero or negative scale registers a light with
--- no size at all, which looks exactly like the plugin failing to load.
--- True if this split is one the mod should mark.
---
--- The per-fight scope settings are gone. MarkInBaseFight and
--- MarkInExtremeMeasures let the marker be enabled in one fight variant and not
--- the other, which is a real scenario -- practising Extreme Measures unaided in
--- the easier base fight -- but nobody asked for it, and Enabled already covers
--- the case anyone actually has.
---
--- The clone-type check stays. It is not scope, it is a guard: UnitSplit is a
--- general function that other enemies use, and this must ignore a split that is
--- not one of Hecate's two clone types rather than mark whatever was passed.
+-- True if this split is one the mod should mark. The clone-type check is not
+-- scope, it is a guard: UnitSplit is a general function other enemies use
+-- too, and this must ignore a split that is not one of Hecate's own clone
+-- types rather than mark whatever was passed. Per-fight scope settings
+-- (base-only / EM-only) were considered and dropped -- nobody asked for that
+-- level of control, and Enabled already covers the case anyone actually has.
 function CONFIG.marksCloneType(spawnedUnit)
     if not settings.values.Enabled then return false end
     return spawnedUnit == CLONE_EM or spawnedUnit == CLONE_BASE
@@ -584,35 +331,13 @@ end
 -- =============================================================================
 -- No art registration -- and that is the point
 -- =============================================================================
--- Versions 1.0.0 through 2.7.0 registered custom animations through sjson and
--- attached those. It never worked, and the failure was narrow and stubborn: the
--- custom light RENDERED but never took its color, under every condition tried.
--- Red, Ember and Amber; brightness 0.5 and 1.0; vanilla's own exact channel
--- values baked into it; standalone definitions and InheritFrom definitions. All
--- of them produced the same untinted gray-white pool.
---
--- Two playtests bounded it exactly:
---
---   * DiagnosticVanillaGlow attached VANILLA's HecateGroundGlow by name. It
---     rendered, stacked, and cycled teal to magenta correctly.
---   * DiagnosticVanillaColors put vanilla's exact numbers into THIS MOD's own
---     registered animation. Gray-white.
---
--- Same numbers, different result. So the values were never the problem, and no
--- further color tuning could have found it.
---
--- The rewrite therefore uses no custom art at all. Both mechanisms it does use
--- were confirmed working in a real fight:
---
---   1. Removing HecateGroundGlow from the CLONE types in data, so only the real
---      Hecate is lit. Verified -- the clones went dark.
---   2. Attaching vanilla's own HecateGroundGlow to her and stacking it.
---      Verified -- eight copies were visibly brighter, in color.
---
--- That is the whole marker. The cost is that the color is vanilla's teal-to-
--- magenta cycle rather than a free choice, which is the look originally
--- described as "natural, not clearly a mod". Color is recovered separately, by
--- recolouring vanilla's own light entry rather than registering a new one.
+-- Versions 1.0.0 through 2.7.0 registered custom animations and attached
+-- those; the custom light rendered but never took its color, under every
+-- condition tried. Vanilla's own HecateGroundGlow, attached by name, always
+-- worked. The rewrite uses no custom art at all: stripping the clones' own
+-- copy in data and re-attaching vanilla's to her, both confirmed in a real
+-- fight. See DESIGN.md for the investigation that bounded it. Color is
+-- recovered separately, by tinting a ground sprite -- see GROUND_FX below.
 
 -- =============================================================================
 -- The marker
@@ -648,53 +373,20 @@ end
 -- only lit floor.
 local VANILLA_GLOW = "HecateGroundGlow"
 
--- Ground SPRITES, as opposed to lights. This is the answer to "can the ground be
--- orange": not by tinting a light, but by attaching art that is already orange.
---
--- A light ADDS to the floor, and the floor here is a painted cyan image, so any
--- added color clips toward white. A sprite is drawn ON the floor and carries its
--- own art, so it reads on its own terms. ApolloGroundGlow is literally defined as
--- Red = 1, Green = 0.6, Blue = 0.
---
--- CastCircle is the stronger option and the reason is worth stating: it is a
--- RING, so it reads by SHAPE. Shape survives a busy, saturated floor in a way no
--- color does -- and this arena defeated color for ten rounds.
--- Ground sprites, and only ones that LOOP.
---
--- v3.7.0 offered the AxeNovaLight_<God> family as a color palette. That was a
--- mistake caught by a playtest: those are axe NOVA bursts -- Duration = 1 with no
--- Loop -- so the marker appeared for a second at the start of the fight and never
--- again. Color was the wrong thing to select art by; persistence comes first.
---
--- ApolloGroundGlow is the one confirmed working, and the reason is right there in
--- its definition: Loop = true, NumFrames = 15, PlaySpeed = 30. It runs forever.
---
--- Color therefore does NOT come from picking different art any more. It comes
--- from the Color argument on CreateAnimation, which vanilla passes for SPRITES in
--- seven places (EventLogic.lua:1676, SpellPresentation.lua:465, 496, 507, 510,
+-- Ground SPRITES, not lights: a light adds to the painted-cyan floor and
+-- clips toward white, where a sprite carries its own art and reads on its
+-- own terms (see DESIGN.md). Color comes from the Color argument on
+-- CreateAnimation, which vanilla passes for sprites in seven places
+-- (EventLogic.lua:1676, SpellPresentation.lua:465, 496, 507, 510,
 -- RoomPresentation.lua:2410, UpgradeChoiceLogic.lua:999) as {R, G, B, A} in
--- 0-255. That is a documented runtime path for sprites, unlike the light tinting
--- that failed -- lights and sprites are not the same thing here, and conflating
--- them cost several rounds.
--- GroundFx is a boolean, parallel to Outline: the art is fixed, and the dials
--- beside it are color and size just as Outline's are color, thickness and
--- opacity. Kept as a table rather than inlined so a second art option, if one is
--- ever confirmed in a fight, is a one-line addition.
+-- 0-255 -- a documented runtime path for sprites, unlike the light tinting
+-- that never worked. A table rather than inlined so a second art option, if
+-- one is ever confirmed in a fight, is a one-line addition.
 local GROUND_FX = {
-    -- Loop = true, 15 frames. The one confirmed working in a real fight.
+    -- Loop = true, 15 frames -- the one confirmed working in a real fight.
+    -- See DESIGN.md for CastCircle and the two options rejected unseen.
     ApolloGlow = "ApolloGroundGlow",
 }
--- Two entries, so this is effectively on/off. It stays a named list rather than a
--- boolean because the thing being chosen is WHICH ART, and a second shape may
--- earn its place later -- but only after being seen in a fight.
---
--- ApolloAoECircleA (a cast ring) was offered here and removed unused. It looked
--- like a shape-based alternative, but reading its definition it is not a clean
--- equivalent: PingPongColor = true gives it a color cycle of its own that would
--- fight GroundFxColor, StartAlpha fades 0.6 to 0.3, and VisualFx spawns a further
--- effect every ~0.2s for as long as it lives. It is an AoE telegraph, not a
--- marker. Shipping it untested would have repeated the AxeNovaLight mistake --
--- art chosen by reading one property and ignoring the rest.
 
 -- unit.CreateAnimations is consumed engine-side at spawn -- no Lua reads it, so
 -- there is no hook point and no way to stop the clones' glow from being made in
@@ -986,35 +678,15 @@ end
 -- =============================================================================
 -- Overlay panel
 -- =============================================================================
--- Added in v2.2.0 after a playtest went looking for RealHecate in the modding
--- overlay and did not find it. Settings were file-only, which is a gap in this
--- plugin rather than a limit of the platform: Chalk generates the .cfg and draws
--- no GUI at all, and the overlay panel is separate rom.gui/ImGui code.
---
--- Hot reload and an overlay panel coexist fine -- seven mods installed on this
--- machine do both (DamageMeter, ModpackLib, the adamantSpeedrun set) -- so this
--- costs nothing that was already working.
---
--- Everything here writes through saveSetting, so a change lands in the .cfg AND
--- in settings.values immediately. Color, brightness, scale, texture and
--- stacking are read at attach time, so they take effect at the very next split
--- with no restart and no file editing.
---
--- Three rules this follows, all of them things this platform punishes:
---   * Every ImGui widget label carries a ##unique suffix. Widgets are keyed by
---     label string, so two sliders sharing a label are ONE widget and each will
---     move the other.
---   * End is unconditional after Begin; EndCombo and EndMenu only when their
---     Begin returned true. Mispairing leaks a window and corrupts the overlay
---     for every other mod, not just this one.
---   * The whole body is wrapped in pcall. A failure here must not take the
---     overlay, or the game, down with it.
+-- Added in v2.2.0 so settings are reachable without a mouse-only .cfg edit.
+-- Everything here writes through saveSetting, landing in the .cfg and
+-- settings.values immediately, and most dials are read at attach time, so
+-- they take effect at the very next split with no restart. See DESIGN.md for
+-- why, and see renderWindow below for the ImGui pairing rules this follows.
 
--- Everything in the .cfg is restart-only in practice. The plugin reads settings
--- at load and on hot reload, and a hot reload fires on a plugin FILE change, not
--- a .cfg change -- and the game rewrites the .cfg from its own memory on exit, so
--- an edit made while it is running is discarded anyway. Only this panel writes
--- through immediately, and it needs a mouse, which rules it out on a controller.
+-- The game rewrites the .cfg from memory on exit, so an edit made while it is
+-- running is discarded anyway; only this panel writes through immediately,
+-- and it needs a mouse. Everything below is restart-only in practice.
 local RESTART_ONLY = " (restart)"
 
 local function comboSetting(imgui, key, options, label)
