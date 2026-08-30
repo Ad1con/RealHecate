@@ -7,6 +7,8 @@ version, so the square brackets are load-bearing -- the action looks for
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-30
+
 Documentation and source tidying. No change to how the mod behaves.
 
 - README: added a note that the mod may be useful for accessibility, with an
@@ -36,5 +38,6 @@ a red outline, so she can be told from her two clones.
 - Modifies no game files. Edits `EnemyData` in memory, attaches art that ships
   with the game, and wraps one function (`UnitSplit`).
 
-[unreleased]: https://github.com/Ad1con/RealHecate/compare/1.0.0...HEAD
+[unreleased]: https://github.com/Ad1con/RealHecate/compare/1.0.1...HEAD
+[1.0.1]: https://github.com/Ad1con/RealHecate/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/Ad1con/RealHecate/compare/cbb81f786e424f85f4498ccae59dd0d8cab83bc6...1.0.0
