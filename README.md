@@ -18,8 +18,6 @@ I hope that this might be useful for accessibility as well as convenience. If
 effects like these would help anyone elsewhere in the game, open an issue on the
 GitHub page — I will try to help.
 
----
-
 ## Settings
 
 The config file is `Adicon-RealHecate.cfg`, in your profile's
@@ -78,8 +76,10 @@ Hades II is by [Supergiant Games](https://www.supergiantgames.com/). This is an
 unofficial fan mod, not endorsed by or affiliated with them. The icon is a
 cropped in-game portrait.
 
-Built on [ReturnOfModding / Hell2Modding](https://github.com/SGG-Modding), with
-`LuaENVY-ENVY`, `SGG_Modding-ModUtil` and `SGG_Modding-ReLoad`.
+Built on [ReturnOfModding / Hell2Modding](https://github.com/SGG-Modding). This
+mod cannot load without `LuaENVY-ENVY`, `SGG_Modding-ModUtil` and
+`SGG_Modding-ReLoad` -- the environment isolation, the function wrapping and the
+hot reload are all theirs.
 
 Thank you to the Hades Modding community. Your work is astounding.
 
