@@ -11,7 +11,12 @@ her clones already have red outlines during Dream Dives, so the clones' outlines
 are removed and only the real Hecate has an outline.
 
 The mod uses only in-game assets and changes no fight or gameplay behavior. It
-is purely cosmetic. Telling the clones apart is normally part of the fight so this mod will make the fight easier. I hope the mod will also be useful for accessibility purposes.
+is purely cosmetic. Telling the clones apart is normally part of the fight so
+this mod will make the fight easier.
+
+I hope that this might be useful for accessibility as well as convenience. If
+effects like these would help anyone elsewhere in the game, open an issue on the
+GitHub page — I will try to help.
 
 ---
 
@@ -74,8 +79,8 @@ unofficial fan mod, not endorsed by or affiliated with them. The icon is a
 cropped in-game portrait.
 
 Built on [ReturnOfModding / Hell2Modding](https://github.com/SGG-Modding), with
-`SGG_Modding-ModUtil` and `SGG_Modding-ReLoad`.
+`LuaENVY-ENVY`, `SGG_Modding-ModUtil` and `SGG_Modding-ReLoad`.
 
-Thank you to the Hades Modding community! 
+Thank you to the Hades Modding community. Your work is astounding.
 
 Built by Adicon, with Claude.
