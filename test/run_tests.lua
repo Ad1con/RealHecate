@@ -73,6 +73,12 @@ end
 -- store starts empty, so every key binds to the plugin's own default. Tests that
 -- need a non-default value pass it in `initial` and thereby state what they
 -- depend on, rather than inheriting it.
+-- The overlay window is closed until the menu bar's Settings item is
+-- clicked. Panel tests drive renderWindow directly, so they open it first.
+local function openPanel(plugin)
+  plugin.ui.showWindow = true
+end
+
 local function boot(initial, opts)
   opts = opts or {}
   local G = dofile(HARNESS)
@@ -488,7 +494,8 @@ end
 do
   -- Begin/End must balance. A leaked window corrupts the overlay for EVERY mod,
   -- not just this one.
-  boot()
+  local _, plugin = boot()
+  openPanel(plugin)
   M.guiCallbacks.window()
   check("10c.4 Begin and End balance on a normal frame", at(M.depth, "window") == 0,
         "depth=" .. tostring(at(M.depth, "window")))
@@ -496,7 +503,8 @@ end
 
 do
   -- ImGui's contract: End is called even when Begin returns false (collapsed).
-  boot(nil, { gui = { collapsed = true } })
+  local _, plugin = boot(nil, { gui = { collapsed = true } })
+  openPanel(plugin)
   M.guiCallbacks.window()
   check("10c.5 they balance when the window is collapsed", at(M.depth, "window") == 0,
         "depth=" .. tostring(at(M.depth, "window")))
@@ -504,7 +512,8 @@ end
 
 do
   -- The dangerous case: something raises after Begin pushed a window.
-  boot(nil, { gui = { errorInBody = true } })
+  local _, plugin = boot(nil, { gui = { errorInBody = true } })
+  openPanel(plugin)
   local ok = pcall(M.guiCallbacks.window)
   check("10c.6 a failure in the body does not escape the panel", ok == true)
   check("10c.7 and the window is still closed", at(M.depth, "window") == 0,
@@ -514,11 +523,13 @@ end
 
 do
   -- EndCombo only when BeginCombo returned true.
-  boot(nil, { gui = { openCombo = true } })
+  local _, plugin = boot(nil, { gui = { openCombo = true } })
+  openPanel(plugin)
   M.guiCallbacks.window()
   check("10c.9 combos balance when open", at(M.depth, "combo") == 0,
         "depth=" .. tostring(at(M.depth, "combo")))
-  boot(nil, { gui = { openCombo = false } })
+  local _, plugin = boot(nil, { gui = { openCombo = false } })
+  openPanel(plugin)
   M.guiCallbacks.window()
   check("10c.10 and when closed", at(M.depth, "combo") == 0,
         "depth=" .. tostring(at(M.depth, "combo")))
@@ -541,6 +552,7 @@ do
   -- closes that: widget labels carry ##RealHecate_<key>, so the key is
   -- recoverable and checkable against the real settings table.
   local G, plugin = boot(nil, { gui = { openCombo = true } })
+  openPanel(plugin)
   M.guiCallbacks.window()
   M.guiCallbacks.menuBar()
   local values = at(at(plugin, "settings"), "values")
@@ -570,7 +582,8 @@ do
   -- are one widget, and each will move the other. This is the reason every label
   -- in the panel carries a ##unique suffix, and the reason it is worth asserting
   -- rather than trusting.
-  boot(nil, { gui = { openCombo = true } })
+  local _, plugin = boot(nil, { gui = { openCombo = true } })
+  openPanel(plugin)
   M.guiCallbacks.window()
   local seen, dupes = {}, {}
   for _, l in ipairs(M.labels) do
@@ -588,6 +601,7 @@ do
   -- Toggling in the panel must write through to the config, not just to memory.
   local G, plugin = boot(nil, { gui = { toggle = "Enabled##RealHecate_Enabled" } })
   check("10c.13 starts enabled", at(at(plugin, "settings"), "values").Enabled == true)
+  openPanel(plugin)
   M.guiCallbacks.window()
   check("10c.14 the checkbox flips the setting",
         at(at(plugin, "settings"), "values").Enabled == false)
@@ -599,6 +613,7 @@ do
   -- A combo selection has to reach the live variant picker, which is the whole
   -- point of tuning from the overlay.
   local G, plugin = boot(nil, { gui = { openCombo = true, click = "Ember##RealHecate_GroundFxColor_Ember" } })
+  openPanel(plugin)
   M.guiCallbacks.window()
   check("10c.16 picking a color writes it through",
         M.store.GroundFxColor == "Ember", tostring(M.store.GroundFxColor))
@@ -611,6 +626,7 @@ end
 do
   local G, plugin = boot({ Light = true },
                          { gui = { slide = "Ground size##RealHecate_GroundFxScale", slideTo = 7 } })
+  openPanel(plugin)
   M.guiCallbacks.window()
   check("10c.18 a slider writes through", M.store.GroundFxScale == 7,
         tostring(M.store.GroundFxScale))
@@ -1104,6 +1120,39 @@ do
 end
 
 -- =============================================================================
+
+do
+  -- REGRESSION. add_imgui runs every frame the overlay is open, so a window
+  -- submitted unconditionally is always on screen -- and with several mods
+  -- installed every one of their windows shows at once, which is what was
+  -- reported. The window must start closed and draw nothing until opened.
+  local _, plugin = boot()
+  check("14.20 the window starts closed", plugin.ui.showWindow == false,
+        tostring(plugin.ui.showWindow))
+  M.labels = {}
+  M.guiCallbacks.window()
+  local drew = false
+  for _, l in ipairs(M.labels) do if tostring(l):find("Begin:", 1, true) then drew = true end end
+  check("14.21 and a frame while closed submits no window", drew == false)
+end
+
+do
+  -- The menu bar's item opens the window rather than toggling the mod. Every
+  -- one of these panels shipped with the master switch as its only menu item,
+  -- so hunting for settings turned the mod off.
+  local _, plugin = boot(nil, { gui = { openMenu = true, clickMenuItem = "Settings" } })
+  local before = plugin.settings.values.Enabled
+  M.guiCallbacks.menuBar()
+  check("14.22 the Settings menu item opens the window", plugin.ui.showWindow == true,
+        tostring(plugin.ui.showWindow))
+  check("14.23 and does not touch the master switch",
+        plugin.settings.values.Enabled == before)
+  M.labels = {}
+  M.guiCallbacks.window()
+  local drew = false
+  for _, l in ipairs(M.labels) do if tostring(l):find("Begin:", 1, true) then drew = true end end
+  check("14.24 and now the window is submitted", drew == true)
+end
 
 print(("RealHecate: %d passed, %d failed"):format(passed, failed))
 for _, f in ipairs(failures) do print("  FAIL  " .. f) end
